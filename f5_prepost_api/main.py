@@ -74,13 +74,13 @@ async def startup_event():
     logger.info("============= Starting application =============")
     logger.info(f"API Version: {settings.VERSION}")
     
-    # Initialize DeviceManager
-    DeviceManager()
-    logger.info("Device Manager initialized")
-    
     # Get environment safely with fallback to development
     environment = getattr(settings, "ENVIRONMENT", "development")
     logger.info(f"Environment: {environment}")
+    
+    # Initialize DeviceManager
+    DeviceManager()
+    logger.info("Device Manager initialized")
     
     # Initialize database
     try:
@@ -101,6 +101,8 @@ async def shutdown_event():
     # Close all device connections
     logger.info("Closing all device handlers")
     DeviceManager().close_all()
+    
+    logger.info("Application shutdown complete")
 
 @app.get("/")
 async def root():

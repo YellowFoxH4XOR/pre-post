@@ -14,12 +14,22 @@ class DeviceManager:
     _handlers: Dict[str, F5DeviceHandler] = {}
     
     def __new__(cls):
+        """Ensure singleton pattern."""
         if cls._instance is None:
             cls._instance = super(DeviceManager, cls).__new__(cls)
         return cls._instance
     
     def get_handler(self, device_ip: str, username: str, password: str) -> F5DeviceHandler:
-        """Get or create a device handler for the specified device."""
+        """Get or create a device handler for the specified device.
+        
+        Args:
+            device_ip: IP address of the device
+            username: Authentication username
+            password: Authentication password
+            
+        Returns:
+            F5DeviceHandler instance for the device
+        """
         cache_key = f"{device_ip}:{username}"
         
         if cache_key not in self._handlers:
@@ -31,7 +41,12 @@ class DeviceManager:
         return self._handlers[cache_key]
     
     def close_handler(self, device_ip: str, username: str):
-        """Close a specific device handler."""
+        """Close a specific device handler.
+        
+        Args:
+            device_ip: IP address of the device
+            username: Authentication username
+        """
         cache_key = f"{device_ip}:{username}"
         
         if cache_key in self._handlers:

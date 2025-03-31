@@ -11,7 +11,6 @@ from ....models.schemas import (
     PreCheckResponse,
     DeviceCredentials
 )
-from ....core.device_handler import F5DeviceHandler
 from ....core.device_manager import DeviceManager
 
 router = APIRouter()
@@ -74,13 +73,16 @@ async def create_precheck(
                         batch_id=batch_id,
                         device_ip=device.device_ip,
                         status="completed" if result["status"] == "success" else "failed",
-                        created_by=request.created_by if hasattr(request, 'created_by') else None,
+                        created_by=(
+                            request.created_by 
+                            if hasattr(request, 'created_by') 
+                            else None
+                        ),
                         meta_data={"commands": request.commands}
                     )
                     db.add(precheck)
                     
                     if result["status"] == "success":
-                        logger.info(f"Precheck successful for device: {device.device_ip}")
                         # Save command outputs
                         for idx, (command, output) in enumerate(result["results"].items()):
                             precheck_output = PreCheckOutput(
@@ -98,25 +100,35 @@ async def create_precheck(
                             "status": "completed"
                         })
                     else:
-                        logger.warning(f"Precheck failed for device: {device.device_ip}, error: {result.get('error', 'Unknown error')}")
+                        logger.warning(
+                            f"Precheck failed for device: {device.device_ip}, "
+                            f"error: {result.get('error', 'Unknown error')}"
+                        )
                         checks.append({
                             "device_ip": device.device_ip,
                             "precheck_id": precheck_id,
                             "status": "failed"
                         })
                 except Exception as device_error:
-                    # Log device-specific error but continue with other devices
-                    logger.exception(f"Error processing device {device.device_ip}: {str(device_error)}")
+                    logger.exception(
+                        f"Error processing device {device.device_ip}: {str(device_error)}"
+                    )
                     checks.append({
                         "device_ip": device.device_ip,
                         "precheck_id": None,
                         "status": "failed"
                     })
-        
-        batch.status = "completed" if batch.completed_devices == batch.total_devices else "partial"
-        logger.info(f"Batch status: {batch.status}, completed devices: {batch.completed_devices}/{batch.total_devices}")
-        
-        # Transaction is automatically committed here
+            
+            # Update batch status
+            batch.status = (
+                "completed" 
+                if batch.completed_devices == batch.total_devices 
+                else "partial"
+            )
+            logger.info(
+                f"Batch status: {batch.status}, "
+                f"completed devices: {batch.completed_devices}/{batch.total_devices}"
+            )
         
         return {
             "batch_id": batch_id,

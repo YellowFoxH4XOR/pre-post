@@ -9,11 +9,21 @@ from pathlib import Path
 # Configure logging
 logger = logging.getLogger(__name__)
 
+
 class F5DeviceHandler:
+    """Handler for F5 device connections with connection reuse."""
+    
     # Class-level connection cache to persist connections between instances
     _connection_cache = {}
     
     def __init__(self, device_ip: str, username: str, password: str):
+        """Initialize device handler with connection parameters.
+        
+        Args:
+            device_ip: IP address of the device
+            username: Authentication username
+            password: Authentication password
+        """
         self.device_ip = device_ip
         self.device_info = {
             'device_type': 'f5_ltm',
@@ -21,6 +31,7 @@ class F5DeviceHandler:
             'username': username,
             'password': password,
         }
+        
         # Ensure logs directory exists
         log_dir = Path("logs")
         log_dir.mkdir(exist_ok=True)
@@ -37,15 +48,21 @@ class F5DeviceHandler:
         
         Uses a class-level connection cache to reuse connections across
         multiple instances of F5DeviceHandler for the same device.
+        
+        Yields:
+            netmiko.ConnectHandler: Active connection to the device
         """
         try:
             # Check if connection exists in cache
-            if self.cache_key in self._connection_cache and self._connection_cache[self.cache_key] is not None:
+            if (self.cache_key in self._connection_cache and 
+                    self._connection_cache[self.cache_key] is not None):
                 logger.info(f"Reusing existing connection to device: {self.device_ip}")
                 connection = self._connection_cache[self.cache_key]
                 # Verify connection is still active
                 if not connection.is_alive():
-                    logger.warning(f"Cached connection to {self.device_ip} is not alive, reconnecting...")
+                    logger.warning(
+                        f"Cached connection to {self.device_ip} is not alive, reconnecting..."
+                    )
                     connection.disconnect()
                     self._connection_cache[self.cache_key] = None
                     connection = None
@@ -62,7 +79,8 @@ class F5DeviceHandler:
         except Exception as e:
             # Close and remove the connection on error
             logger.exception(f"Error with connection to {self.device_ip}: {str(e)}")
-            if self.cache_key in self._connection_cache and self._connection_cache[self.cache_key] is not None:
+            if (self.cache_key in self._connection_cache and 
+                    self._connection_cache[self.cache_key] is not None):
                 try:
                     self._connection_cache[self.cache_key].disconnect()
                 except Exception:
@@ -71,11 +89,21 @@ class F5DeviceHandler:
             raise
     
     def _execute_commands(self, commands: List[str]) -> Dict[str, Any]:
-        """Execute multiple commands on the device using a single session."""
+        """Execute multiple commands on the device using a single session.
+        
+        Args:
+            commands: List of commands to execute
+            
+        Returns:
+            Dict containing status and results or error information
+        """
         results = {}
         try:
             with self.get_connection() as net_connect:
-                logger.info(f"Using connection to execute {len(commands)} commands on device: {self.device_ip}")
+                logger.info(
+                    f"Using connection to execute {len(commands)} commands on device: "
+                    f"{self.device_ip}"
+                )
                 
                 for command in commands:
                     logger.info(f"Executing command on {self.device_ip}: {command}")
@@ -90,8 +118,18 @@ class F5DeviceHandler:
             return {"status": "error", "error": str(e)}
     
     async def execute_commands_async(self, commands: List[str]) -> Dict[str, Any]:
-        """Execute commands asynchronously using the ThreadPoolExecutor."""
-        logger.info(f"Executing commands asynchronously on device: {self.device_ip}, commands: {commands}")
+        """Execute commands asynchronously using a ThreadPoolExecutor.
+        
+        Args:
+            commands: List of commands to execute
+            
+        Returns:
+            Dict containing status and results or error information
+        """
+        logger.info(
+            f"Executing commands asynchronously on device: {self.device_ip}, "
+            f"commands: {commands}"
+        )
         loop = asyncio.get_event_loop()
         with ThreadPoolExecutor() as pool:
             result = await loop.run_in_executor(
@@ -101,13 +139,17 @@ class F5DeviceHandler:
         if result["status"] == "success":
             logger.info(f"Commands executed successfully on device: {self.device_ip}")
         else:
-            logger.error(f"Failed to execute commands on device: {self.device_ip}, error: {result.get('error', 'Unknown error')}")
+            logger.error(
+                f"Failed to execute commands on device: {self.device_ip}, "
+                f"error: {result.get('error', 'Unknown error')}"
+            )
         
         return result
     
     def close(self):
         """Explicitly close the connection when done."""
-        if self.cache_key in self._connection_cache and self._connection_cache[self.cache_key] is not None:
+        if (self.cache_key in self._connection_cache and 
+                self._connection_cache[self.cache_key] is not None):
             logger.info(f"Closing connection to device: {self.device_ip}")
             try:
                 self._connection_cache[self.cache_key].disconnect()
