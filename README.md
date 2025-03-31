@@ -165,6 +165,21 @@ curl "http://localhost:8000/api/v1/batch/{batch_id}/diff"
 - Regularly update dependencies for security patches
 - Follow your organization's security policies for F5 device access
 
+### Command Security
+
+The API enforces the following security controls:
+
+- **Read-only Commands Only**: The system validates that all commands sent to F5 devices are read-only commands, specifically:
+  - `show` commands
+  - `tmsh` commands 
+  - `cat` commands
+  - `list` commands
+  - `display` commands
+- **Command Validation**: Commands are validated at multiple levels (API endpoint and device handler) to prevent execution of potentially destructive commands.
+- **Validation Error Reporting**: Clear error messages are returned when invalid commands are detected.
+
+This protection helps prevent accidental or malicious configuration changes to network devices.
+
 ## Development
 
 ### Running Tests

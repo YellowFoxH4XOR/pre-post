@@ -30,10 +30,29 @@ async def create_postcheck(
     Returns:
         201: PostCheck successfully created
         404: Batch not found
-        400: Invalid request data or precheck failed
+        400: Invalid request data or commands
         500: Internal server error
     """
     try:
+        # Validate commands before processing devices
+        invalid_commands = []
+        for command in request.commands:
+            if not (command.lower().startswith('show ') or 
+                   command.lower() == 'show' or
+                   command.lower().startswith('list ') or
+                   command.lower() == 'list' or
+                   command.lower().startswith('display ') or
+                   command.lower().startswith('tmsh ') or
+                   command.lower() == 'tmsh' or
+                   command.lower().startswith('cat ') or
+                   command.lower() == 'cat'):
+                invalid_commands.append(command)
+        
+        if invalid_commands:
+            error_msg = f"Only show, tmsh, cat, list, and display commands are allowed. Invalid commands: {', '.join(invalid_commands)}"
+            logger.error(f"Command validation failed at endpoint level: {error_msg}")
+            raise HTTPException(status_code=400, detail=error_msg)
+            
         logger.info(f"Creating postcheck for batch: {batch_id}")
         
         # First check the batch exists - outside the transaction

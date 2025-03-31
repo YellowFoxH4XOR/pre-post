@@ -47,12 +47,29 @@ async def log_requests(request: Request, call_next):
     try:
         response = await call_next(request)
         process_time = time.time() - start_time
-        logger.info(f"[{request_id}] Request completed: {request.method} {request.url.path} - {response.status_code} - {process_time:.4f}s")
+        logger.info(
+            f"[{request_id}] Request completed: {request.method} {request.url.path} - "
+            f"{response.status_code} - {process_time:.4f}s"
+        )
         return response
+    except ValueError as ve:
+        # Handle validation errors separately
+        process_time = time.time() - start_time
+        logger.error(
+            f"[{request_id}] Validation error: {request.method} {request.url.path} - "
+            f"{process_time:.4f}s - {str(ve)}"
+        )
+        return JSONResponse(
+            status_code=400,
+            content={"detail": str(ve)},
+        )
     except Exception as e:
         process_time = time.time() - start_time
         exception_details = traceback.format_exception(*sys.exc_info())
-        logger.error(f"[{request_id}] Request failed: {request.method} {request.url.path} - {process_time:.4f}s")
+        logger.error(
+            f"[{request_id}] Request failed: {request.method} {request.url.path} - "
+            f"{process_time:.4f}s"
+        )
         logger.error(f"[{request_id}] Exception: {str(e)}")
         logger.error(f"[{request_id}] Traceback: {''.join(exception_details)}")
         

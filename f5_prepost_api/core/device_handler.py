@@ -5,6 +5,7 @@ from concurrent.futures import ThreadPoolExecutor
 import logging
 from contextlib import contextmanager
 from pathlib import Path
+from ..utils.command_validator import validate_read_only_commands
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -88,6 +89,17 @@ class F5DeviceHandler:
                 self._connection_cache[self.cache_key] = None
             raise
     
+    def _validate_show_commands(self, commands: List[str]) -> List[str]:
+        """Validate that all commands are read-only commands for safety."""
+        is_valid, validated_commands, invalid_commands = validate_read_only_commands(commands)
+        
+        if not is_valid:
+            error_msg = f"Only show, tmsh, cat, list, and display commands are allowed. Invalid commands: {', '.join(invalid_commands)}"
+            logger.error(f"Command validation failed for {self.device_ip}: {error_msg}")
+            raise ValueError(error_msg)
+        
+        return validated_commands
+    
     def _execute_commands(self, commands: List[str]) -> Dict[str, Any]:
         """Execute multiple commands on the device using a single session.
         
@@ -99,13 +111,16 @@ class F5DeviceHandler:
         """
         results = {}
         try:
+            # Validate commands before execution
+            validated_commands = self._validate_show_commands(commands)
+            
             with self.get_connection() as net_connect:
                 logger.info(
-                    f"Using connection to execute {len(commands)} commands on device: "
+                    f"Using connection to execute {len(validated_commands)} commands on device: "
                     f"{self.device_ip}"
                 )
                 
-                for command in commands:
+                for command in validated_commands:
                     logger.info(f"Executing command on {self.device_ip}: {command}")
                     output = net_connect.send_command(command)
                     results[command] = output
@@ -113,6 +128,10 @@ class F5DeviceHandler:
             
             logger.info(f"Successfully executed all commands on device: {self.device_ip}")
             return {"status": "success", "results": results}
+        except ValueError as ve:
+            # Specific handling for validation errors
+            logger.error(f"Command validation error: {str(ve)}")
+            return {"status": "error", "error": str(ve)}
         except Exception as e:
             logger.exception(f"Error executing commands on device {self.device_ip}: {str(e)}")
             return {"status": "error", "error": str(e)}

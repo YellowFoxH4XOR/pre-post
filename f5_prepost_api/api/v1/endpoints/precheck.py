@@ -30,11 +30,30 @@ async def create_precheck(
     
     Returns:
         201: PreCheck successfully created
-        400: Invalid request data
+        400: Invalid request data or commands
         500: Internal server error
     """
     try:
         logger.info(f"Creating precheck for {len(request.devices)} devices")
+        
+        # Validate commands before processing devices
+        invalid_commands = []
+        for command in request.commands:
+            if not (command.lower().startswith('show ') or 
+                   command.lower() == 'show' or
+                   command.lower().startswith('list ') or
+                   command.lower() == 'list' or
+                   command.lower().startswith('display ') or
+                   command.lower().startswith('tmsh ') or
+                   command.lower() == 'tmsh' or
+                   command.lower().startswith('cat ') or
+                   command.lower() == 'cat'):
+                invalid_commands.append(command)
+        
+        if invalid_commands:
+            error_msg = f"Only show, tmsh, cat, list, and display commands are allowed. Invalid commands: {', '.join(invalid_commands)}"
+            logger.error(f"Command validation failed at endpoint level: {error_msg}")
+            raise HTTPException(status_code=400, detail=error_msg)
         
         # Start transaction
         async with db.begin():
