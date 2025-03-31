@@ -8,6 +8,7 @@ A FastAPI-based system for managing F5 device configuration verification checks.
 - Post-change verification
 - Configuration diff generation
 - Batch operations support
+- Connection pooling and reuse
 - Async database operations
 - SQLite storage
 
@@ -102,6 +103,17 @@ GET /api/v1/checks
 ```
 Lists and filters check operations.
 
+## Connection Management
+
+The application employs an optimized connection management strategy for F5 devices:
+
+- **Connection Pooling**: Maintains persistent connections to F5 devices
+- **Session Reuse**: Multiple commands use the same session
+- **Automatic Reconnection**: Detects stale connections and re-establishes if needed
+- **Resource Cleanup**: Proper connection closure on application shutdown
+
+These improvements significantly reduce overhead from repeatedly establishing connections.
+
 ## Example Usage
 
 1. Create a pre-check:
@@ -176,4 +188,11 @@ poetry run ruff check .
 poetry run mypy .
 ```
 
-## Project Structure 
+## Project Structure
+
+The project follows a modular structure:
+- `f5_prepost_api/core/` - Core functionality including device handlers and connection management
+- `f5_prepost_api/api/` - API endpoints and routing
+- `f5_prepost_api/models/` - Data models and schemas
+- `f5_prepost_api/utils/` - Utility functions
+- `f5_prepost_api/database.py` - Database models and session management 

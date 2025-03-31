@@ -59,16 +59,17 @@ class DiffResponse(BaseModel):
 
 class DeviceProgress(BaseModel):
     device_ip: str
-    precheck_id: Optional[UUID]
-    postcheck_id: Optional[UUID]
+    precheck_id: UUID
+    postcheck_id: Optional[UUID] = None
     status: str
+    status_detail: str
     progress: int
 
 class BatchStatusResponse(BaseModel):
     batch_id: UUID
     total_devices: int
     completed_devices: int
-    status: str
+    status: str  # "initiated", "in_progress", "completed", "failed", "partial"
     devices: List[DeviceProgress]
 
 class CheckListItem(BaseModel):

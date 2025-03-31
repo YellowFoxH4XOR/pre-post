@@ -7,8 +7,9 @@
 4. [Database Schema](#database-schema)
 5. [Status Definitions](#status-definitions)
 6. [Project Structure](#project-structure)
-7. [Key Considerations](#key-considerations)
-8. [Process Flow](#process-flow)
+7. [Connection Management](#connection-management)
+8. [Key Considerations](#key-considerations)
+9. [Process Flow](#process-flow)
 
 ## Overview
 This API system is designed to perform pre and post-change verification checks on F5 load balancer devices. It executes specified commands before and after changes, stores the results, and provides diff comparisons with support for multiple devices.
@@ -37,6 +38,11 @@ This API system is designed to perform pre and post-change verification checks o
 - PostCheck ID
 - Diff output
 - Status
+
+#### 4. DeviceManager
+- Connection pooling
+- Session reuse
+- Lifecycle management
 
 ## API Endpoints
 
@@ -285,7 +291,36 @@ GET /api/v1/checks
 - COMPLETED
 - FAILED
 
-## Project Structure
+## Connection Management
+
+The system implements optimized connection management for F5 devices:
+
+### DeviceHandler
+- Uses Netmiko for device communication
+- Maintains persistent connections
+- Reuses sessions for multiple commands
+- Detects and handles stale connections
+- Provides graceful error handling
+
+### DeviceManager
+- Singleton pattern for application-wide management
+- Caches device handler instances
+- Provides connection pooling across API requests
+- Ensures proper resource cleanup
+
+### Connection Lifecycle
+1. **Creation**: On first device access
+2. **Reuse**: Subsequent commands use existing connection
+3. **Verification**: Connection liveness checked before reuse
+4. **Recovery**: Automatic reconnection if connection lost
+5. **Cleanup**: Proper disconnection on application shutdown
+
+### Benefits
+- Reduced authentication overhead
+- Lower connection latency
+- Improved command execution performance
+- Better resource utilization
+- Enhanced reliability for multi-command operations
 
 ## Key Considerations
 
@@ -294,11 +329,13 @@ GET /api/v1/checks
 - Encryption in transit
 - Access control
 - Audit logging
+- Proper connection cleanup
 
 ### Error Handling
 - Network timeouts
 - Invalid commands
 - Device access issues
+- Connection failures and recovery
 - Data validation
 - Individual device failures
 - Batch partial completion
@@ -308,6 +345,7 @@ GET /api/v1/checks
 - Success/failure rates
 - Resource usage
 - API metrics
+- Connection pool statistics
 - Batch progress tracking
 - Individual device progress tracking
 - Overall batch statistics
@@ -318,6 +356,7 @@ GET /api/v1/checks
 1. Receive request with multiple devices
 2. Create batch record
 3. For each device:
+   - Create/reuse device connection
    - Create individual precheck
    - Execute commands in parallel
    - Update batch progress
@@ -327,6 +366,7 @@ GET /api/v1/checks
 1. Receive request with batch_id
 2. Validate batch exists
 3. For each device in batch:
+   - Create/reuse device connection
    - Create individual postcheck
    - Execute commands in parallel
    - Update batch progress
