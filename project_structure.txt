@@ -1,0 +1,31 @@
+f5_prepost_api/
+├── pyproject.toml
+├── README.md
+├── .gitignore
+├── .env.example
+├── f5_prepost_api/
+│   ├── __init__.py
+│   ├── main.py
+│   ├── config.py
+│   ├── database.py
+│   ├── models/
+│   │   ├── __init__.py
+│   │   └── schemas.py
+│   ├── core/
+│   │   ├── __init__.py
+│   │   └── device_handler.py
+│   ├── api/
+│   │   ├── __init__.py
+│   │   ├── v1/
+│   │   │   ├── __init__.py
+│   │   │   ├── endpoints/
+│   │   │   │   ├── __init__.py
+│   │   │   │   ├── precheck.py
+│   │   │   │   ├── postcheck.py
+│   │   │   │   ├── diff.py
+│   │   │   │   └── status.py
+│   └── utils/
+│       ├── __init__.py
+│       └── diff_utils.py
+└── tests/
+    └── __init__.py 
