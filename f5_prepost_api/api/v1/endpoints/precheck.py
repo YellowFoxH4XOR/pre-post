@@ -171,7 +171,7 @@ async def create_precheck(
         )
         
         return {
-            "batch_id": batch_id,
+            "batch_id": str(batch_id),
             "checks": checks,
             "timestamp": datetime.utcnow(),
             "message": "PreCheck initiated successfully (processing in background)"

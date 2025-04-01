@@ -61,7 +61,7 @@ async def get_diff(
                 logger.warning(f"No postcheck found for precheck: {precheck.id}")
                 devices_result.append({
                     "device_ip": precheck.device_ip,
-                    "precheck_id": precheck.id,
+                    "precheck_id": str(precheck.id),
                     "postcheck_id": None,
                     "status": "pending",
                     "summary": None,
@@ -104,8 +104,8 @@ async def get_diff(
             
             devices_result.append({
                 "device_ip": precheck.device_ip,
-                "precheck_id": precheck.id,
-                "postcheck_id": postcheck.id,
+                "precheck_id": str(precheck.id),
+                "postcheck_id": str(postcheck.id),
                 "status": diff_data.get("status", "unknown"),
                 "summary": {
                     "total_commands": diff_data.get("total_commands", 0),

@@ -86,7 +86,7 @@ async def process_postcheck(
                         # Create postcheck record
                         postcheck = PostCheck(
                             id=postcheck_id,
-                            precheck_id=precheck.id,
+                            precheck_id=str(precheck.id),
                             status="completed" if result["status"] == "success" else "failed",
                             created_by=request.created_by
                         )
@@ -149,7 +149,7 @@ async def create_postcheck(
             precheck = device_to_precheck.get(device.device_ip)
             checks.append({
                 "device_ip": device.device_ip,
-                "precheck_id": precheck.id if precheck else None,
+                "precheck_id": str(precheck.id) if precheck else None,
                 "postcheck_id": None,
                 "status": "initiated" if precheck else "skipped"
             })
