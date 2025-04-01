@@ -54,7 +54,7 @@ async def process_precheck(
                     password=device.password
                 )
                 
-                result = await handler.execute_commands_async(request.commands)
+                device_result = await handler.execute_commands_async(request.commands)
                 precheck_id = str(uuid.uuid4())
                 
                 # Use a new session for each device transaction
@@ -65,15 +65,15 @@ async def process_precheck(
                             id=precheck_id,
                             batch_id=batch_id,
                             device_ip=device.device_ip,
-                            status="completed" if result["status"] == "success" else "failed",
+                            status="completed" if device_result["status"] == "success" else "failed",
                             created_by=request.created_by if hasattr(request, 'created_by') else None,
                             meta_data={"commands": request.commands}
                         )
                         db_device.add(precheck)
                         
-                        if result["status"] == "success":
+                        if device_result["status"] == "success":
                             # Save command outputs
-                            for idx, (command, output) in enumerate(result["results"].items()):
+                            for idx, (command, output) in enumerate(device_result["results"].items()):
                                 precheck_output = PreCheckOutput(
                                     precheck_id=precheck_id,
                                     command=command,
@@ -87,10 +87,10 @@ async def process_precheck(
                     async with db_update.begin():
                         # Get the latest batch data
                         stmt = select(CheckBatch).filter(CheckBatch.batch_id == batch_id)
-                        result = await db_update.execute(stmt)
-                        current_batch = result.scalars().first()
+                        db_result = await db_update.execute(stmt)
+                        current_batch = db_result.scalars().first()
                         
-                        if current_batch and result["status"] == "success":
+                        if current_batch and device_result["status"] == "success":
                             current_batch.completed_devices += 1
             except Exception as device_error:
                 logger.exception(

@@ -81,7 +81,7 @@ async def process_postcheck(
                 )
                 
                 # Execute commands
-                result = await handler.execute_commands_async(commands)
+                device_result = await handler.execute_commands_async(commands)
                 postcheck_id = str(uuid.uuid4())
                 
                 # Use a new session for this device's transaction
@@ -91,14 +91,14 @@ async def process_postcheck(
                         postcheck = PostCheck(
                             id=postcheck_id,
                             precheck_id=precheck.id,  # Already a string from the database
-                            status="completed" if result["status"] == "success" else "failed",
+                            status="completed" if device_result["status"] == "success" else "failed",
                             created_by=request.created_by
                         )
                         db_device.add(postcheck)
                         
-                        if result["status"] == "success":
+                        if device_result["status"] == "success":
                             # Save command outputs
-                            for idx, (command, output) in enumerate(result["results"].items()):
+                            for idx, (command, output) in enumerate(device_result["results"].items()):
                                 postcheck_output = PostCheckOutput(
                                     postcheck_id=postcheck_id,
                                     command=command,
