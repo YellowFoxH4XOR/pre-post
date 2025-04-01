@@ -44,6 +44,7 @@ class DiffSummary(BaseModel):
     total_commands: int
     commands_with_changes: int
     timestamp: datetime
+    diff: Dict
 
 class DiffDeviceStatus(BaseModel):
     device_ip: str
