@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from typing import List
 import uuid
 from datetime import datetime
 import logging
-from sqlalchemy import select
 
 from ....database import get_db, CheckBatch, PreCheck, PreCheckOutput
 from ....models.schemas import (
@@ -28,7 +28,7 @@ async def process_precheck(
     db_url: str
 ):
     """Process precheck operations in the background."""
-    from ....database import get_async_session, AsyncSessionLocal
+    from ....database import AsyncSessionLocal
     
     try:
         logger.info(f"Processing precheck for batch_id: {batch_id}")
@@ -36,8 +36,8 @@ async def process_precheck(
         # First, get the batch in its own session
         async with AsyncSessionLocal() as db_batch:
             stmt = select(CheckBatch).filter(CheckBatch.batch_id == batch_id)
-            result = await db_batch.execute(stmt)
-            batch = result.scalars().first()
+            batch_query_result = await db_batch.execute(stmt)
+            batch = batch_query_result.scalars().first()
             if not batch:
                 logger.error(f"Batch {batch_id} not found")
                 return
@@ -87,8 +87,8 @@ async def process_precheck(
                     async with db_update.begin():
                         # Get the latest batch data
                         stmt = select(CheckBatch).filter(CheckBatch.batch_id == batch_id)
-                        db_result = await db_update.execute(stmt)
-                        current_batch = db_result.scalars().first()
+                        update_query_result = await db_update.execute(stmt)
+                        current_batch = update_query_result.scalars().first()
                         
                         if current_batch and device_result["status"] == "success":
                             current_batch.completed_devices += 1
@@ -102,8 +102,8 @@ async def process_precheck(
             async with db_final.begin():
                 # Get the latest batch data
                 stmt = select(CheckBatch).filter(CheckBatch.batch_id == batch_id)
-                result = await db_final.execute(stmt)
-                final_batch = result.scalars().first()
+                final_query_result = await db_final.execute(stmt)
+                final_batch = final_query_result.scalars().first()
                 
                 if final_batch:
                     final_batch.status = (

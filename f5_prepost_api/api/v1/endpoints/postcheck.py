@@ -36,8 +36,8 @@ async def process_postcheck(
         # Get batch record in its own session
         async with AsyncSessionLocal() as db_batch:
             stmt = select(CheckBatch).filter(CheckBatch.batch_id == batch_id)
-            result = await db_batch.execute(stmt)
-            batch = result.scalars().first()
+            batch_result = await db_batch.execute(stmt)
+            batch = batch_result.scalars().first()
             if not batch:
                 logger.error(f"Batch {batch_id} not found")
                 return
@@ -45,8 +45,8 @@ async def process_postcheck(
         # Get all prechecks for this batch in another session
         async with AsyncSessionLocal() as db_prechecks:
             stmt = select(PreCheck).filter(PreCheck.batch_id == batch_id)
-            result = await db_prechecks.execute(stmt)
-            prechecks = result.scalars().all()
+            precheck_result = await db_prechecks.execute(stmt)
+            prechecks = precheck_result.scalars().all()
             
             if not prechecks:
                 logger.error(f"No prechecks found for batch_id: {batch_id}")
@@ -133,8 +133,8 @@ async def create_postcheck(
         
         # Verify batch exists
         stmt = select(CheckBatch).filter(CheckBatch.batch_id == batch_id)
-        result = await db.execute(stmt)
-        batch = result.scalars().first()
+        batch_result = await db.execute(stmt)
+        batch = batch_result.scalars().first()
         
         if not batch:
             logger.error(f"Batch not found: {batch_id}")
@@ -142,8 +142,8 @@ async def create_postcheck(
         
         # Get all prechecks for this batch
         stmt = select(PreCheck).filter(PreCheck.batch_id == batch_id)
-        result = await db.execute(stmt)
-        prechecks = result.scalars().all()
+        precheck_result = await db.execute(stmt)
+        prechecks = precheck_result.scalars().all()
         
         device_to_precheck = {pc.device_ip: pc for pc in prechecks}
         
