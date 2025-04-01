@@ -53,7 +53,17 @@ async def log_requests(request: Request, call_next):
         )
         return response
     except ValueError as ve:
-        # Handle validation errors separately
+        # Handle UUID conversion errors
+        if "UUID" in str(ve):
+            logger.error(
+                f"[{request_id}] UUID conversion error: {request.method} {request.url.path} - "
+                f"{str(ve)}"
+            )
+            return JSONResponse(
+                status_code=400,
+                content={"detail": "Invalid UUID format in request or response"},
+            )
+        # Handle other validation errors
         process_time = time.time() - start_time
         logger.error(
             f"[{request_id}] Validation error: {request.method} {request.url.path} - "

@@ -41,6 +41,13 @@ async def init_db():
         await conn.run_sync(Base.metadata.create_all)
     logger.info("Database initialized")
 
+# Add this utility function at the top of the file after imports
+def ensure_str_uuid(uuid_val):
+    """Ensures a UUID is converted to string format."""
+    if uuid_val is None:
+        return None
+    return str(uuid_val)
+
 # Models
 class CheckBatch(Base):
     """Represents a batch of pre/post checks with status tracking."""

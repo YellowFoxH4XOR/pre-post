@@ -15,11 +15,11 @@ class PreCheckRequest(BaseModel):
 
 class CheckStatus(BaseModel):
     device_ip: str
-    precheck_id: UUID
+    precheck_id: Optional[str] = None
     status: str
 
 class PreCheckResponse(BaseModel):
-    batch_id: UUID
+    batch_id: str
     checks: List[CheckStatus]
     timestamp: datetime
     message: str
@@ -30,12 +30,12 @@ class PostCheckRequest(BaseModel):
 
 class PostCheckStatus(BaseModel):
     device_ip: str
-    precheck_id: UUID
-    postcheck_id: UUID
+    precheck_id: Optional[str] = None
+    postcheck_id: Optional[str] = None
     status: str
 
 class PostCheckResponse(BaseModel):
-    batch_id: UUID
+    batch_id: str
     checks: List[PostCheckStatus]
     timestamp: datetime
     message: str
@@ -48,13 +48,13 @@ class DiffSummary(BaseModel):
 
 class DiffDeviceStatus(BaseModel):
     device_ip: str
-    precheck_id: UUID
-    postcheck_id: UUID
+    precheck_id: str
+    postcheck_id: Optional[str] = None
     status: str
-    summary: DiffSummary
+    summary: Optional[Dict] = None
 
 class DiffResponse(BaseModel):
-    batch_id: UUID
+    batch_id: str
     devices: List[DiffDeviceStatus]
     overall_status: str
 
