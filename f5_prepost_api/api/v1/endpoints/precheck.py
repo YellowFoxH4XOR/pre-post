@@ -4,6 +4,7 @@ from typing import List
 import uuid
 from datetime import datetime
 import logging
+from sqlalchemy import select
 
 from ....database import get_db, CheckBatch, PreCheck, PreCheckOutput
 from ....models.schemas import (
@@ -33,29 +34,31 @@ async def process_precheck(
         try:
             logger.info(f"Processing precheck for batch_id: {batch_id}")
             
-            # Start transaction
-            async with db.begin():
-                # Get batch record
-                batch = await db.get(CheckBatch, batch_id)
-                if not batch:
-                    logger.error(f"Batch {batch_id} not found")
-                    return
-                
-                # Process each device with better error handling
-                for device in request.devices:
-                    try:
-                        logger.info(f"Processing device: {device.device_ip}")
-                        
-                        # Get handler from device manager - reuse if possible
-                        handler = device_manager.get_handler(
-                            device_ip=device.device_ip,
-                            username=device.username,
-                            password=device.password
-                        )
-                        
-                        result = await handler.execute_commands_async(request.commands)
-                        precheck_id = str(uuid.uuid4())
-                        
+            # Get batch record
+            stmt = select(CheckBatch).filter(CheckBatch.batch_id == batch_id)
+            result = await db.execute(stmt)
+            batch = result.scalars().first()
+            if not batch:
+                logger.error(f"Batch {batch_id} not found")
+                return
+            
+            # Process each device with better error handling
+            for device in request.devices:
+                try:
+                    logger.info(f"Processing device: {device.device_ip}")
+                    
+                    # Get handler from device manager - reuse if possible
+                    handler = device_manager.get_handler(
+                        device_ip=device.device_ip,
+                        username=device.username,
+                        password=device.password
+                    )
+                    
+                    result = await handler.execute_commands_async(request.commands)
+                    precheck_id = str(uuid.uuid4())
+                    
+                    # Use transaction for each device
+                    async with db.begin():
                         # Create precheck record
                         precheck = PreCheck(
                             id=precheck_id,
@@ -78,18 +81,18 @@ async def process_precheck(
                                 )
                                 db.add(precheck_output)
                             
+                            # Update batch completion count
                             batch.completed_devices += 1
-                        else:
-                            logger.warning(
-                                f"Precheck failed for device: {device.device_ip}, "
-                                f"error: {result.get('error', 'Unknown error')}"
-                            )
-                    except Exception as device_error:
-                        logger.exception(
-                            f"Error processing device {device.device_ip}: {str(device_error)}"
-                        )
+                except Exception as device_error:
+                    logger.exception(
+                        f"Error processing device {device.device_ip}: {str(device_error)}"
+                    )
+            
+            # Update batch status in a separate transaction
+            async with db.begin():
+                # Refresh the batch object to ensure we have the latest data
+                await db.refresh(batch)
                 
-                # Update batch status
                 batch.status = (
                     "completed" 
                     if batch.completed_devices == batch.total_devices 
@@ -137,12 +140,11 @@ async def create_precheck(
             logger.error(f"Command validation failed at endpoint level: {error_msg}")
             raise HTTPException(status_code=400, detail=error_msg)
         
-        # Start transaction
+        # Create batch record in a transaction
+        batch_id = str(uuid.uuid4())
+        logger.info(f"Generated batch_id: {batch_id}")
+        
         async with db.begin():
-            batch_id = str(uuid.uuid4())
-            logger.info(f"Generated batch_id: {batch_id}")
-            
-            # Create batch record
             batch = CheckBatch(
                 batch_id=batch_id,
                 status="initiated",
@@ -152,26 +154,27 @@ async def create_precheck(
             )
             db.add(batch)
             
-            # Prepare response
-            checks = []
-            for device in request.devices:
-                checks.append({
-                    "device_ip": device.device_ip,
-                    "precheck_id": None,
-                    "status": "initiated"
-                })
+        # Prepare response
+        checks = []
+        for device in request.devices:
+            checks.append({
+                "device_ip": device.device_ip,
+                "precheck_id": None,
+                "status": "initiated"
+            })
         
         # Schedule background task
         from ....config import settings
+        from ....database import DATABASE_URL
         background_tasks.add_task(
             process_precheck,
             request=request,
             batch_id=batch_id,
-            db_url=settings.DATABASE_URL if hasattr(settings, 'DATABASE_URL') else "sqlite+aiosqlite:///f5_prepost.db"
+            db_url=getattr(settings, 'DATABASE_URL', DATABASE_URL)
         )
         
         return {
-            "batch_id": str(batch_id),
+            "batch_id": batch_id,
             "checks": checks,
             "timestamp": datetime.utcnow(),
             "message": "PreCheck initiated successfully (processing in background)"

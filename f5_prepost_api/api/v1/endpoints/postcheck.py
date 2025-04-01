@@ -6,7 +6,7 @@ import uuid
 from datetime import datetime
 import logging
 
-from ....database import get_db, CheckBatch, PreCheck, PostCheck, PostCheckOutput
+from ....database import get_db, CheckBatch, PreCheck, PostCheck, PostCheckOutput, ensure_str_uuid
 from ....models.schemas import (
     PostCheckRequest,
     PostCheckResponse,
@@ -35,7 +35,9 @@ async def process_postcheck(
             logger.info(f"Processing postcheck for batch_id: {batch_id}")
             
             # Get batch record
-            batch = await db.get(CheckBatch, batch_id)
+            stmt = select(CheckBatch).filter(CheckBatch.batch_id == batch_id)
+            result = await db.execute(stmt)
+            batch = result.scalars().first()
             if not batch:
                 logger.error(f"Batch {batch_id} not found")
                 return
@@ -52,41 +54,41 @@ async def process_postcheck(
             # Create a mapping of device_ip to precheck
             device_to_precheck = {pc.device_ip: pc for pc in prechecks}
             
-            # Start transaction
-            async with db.begin():
-                # Process each device
-                for device in request.devices:
-                    try:
-                        logger.info(f"Processing postcheck for device: {device.device_ip}")
-                        
-                        # Check if there's a precheck for this device
-                        precheck = device_to_precheck.get(device.device_ip)
-                        if not precheck:
-                            logger.warning(f"No precheck found for device: {device.device_ip}")
-                            continue
-                        
-                        # Get the commands from precheck metadata
-                        if not precheck.meta_data or "commands" not in precheck.meta_data:
-                            logger.warning(f"No commands found in precheck for device: {device.device_ip}")
-                            continue
-                        
-                        commands = precheck.meta_data["commands"]
-                        
-                        # Get handler
-                        handler = device_manager.get_handler(
-                            device_ip=device.device_ip,
-                            username=device.username,
-                            password=device.password
-                        )
-                        
-                        # Execute commands
-                        result = await handler.execute_commands_async(commands)
-                        postcheck_id = str(uuid.uuid4())
-                        
+            # Process each device
+            for device in request.devices:
+                try:
+                    logger.info(f"Processing postcheck for device: {device.device_ip}")
+                    
+                    # Check if there's a precheck for this device
+                    precheck = device_to_precheck.get(device.device_ip)
+                    if not precheck:
+                        logger.warning(f"No precheck found for device: {device.device_ip}")
+                        continue
+                    
+                    # Get the commands from precheck metadata
+                    if not precheck.meta_data or "commands" not in precheck.meta_data:
+                        logger.warning(f"No commands found in precheck for device: {device.device_ip}")
+                        continue
+                    
+                    commands = precheck.meta_data["commands"]
+                    
+                    # Get handler
+                    handler = device_manager.get_handler(
+                        device_ip=device.device_ip,
+                        username=device.username,
+                        password=device.password
+                    )
+                    
+                    # Execute commands
+                    result = await handler.execute_commands_async(commands)
+                    postcheck_id = str(uuid.uuid4())
+                    
+                    # We need to explicitly begin and commit each transaction
+                    async with db.begin():
                         # Create postcheck record
                         postcheck = PostCheck(
                             id=postcheck_id,
-                            precheck_id=str(precheck.id),
+                            precheck_id=precheck.id,  # Already a string from the database
                             status="completed" if result["status"] == "success" else "failed",
                             created_by=request.created_by
                         )
@@ -102,10 +104,10 @@ async def process_postcheck(
                                     execution_order=idx
                                 )
                                 db.add(postcheck_output)
-                    except Exception as device_error:
-                        logger.exception(
-                            f"Error processing device {device.device_ip}: {str(device_error)}"
-                        )
+                except Exception as device_error:
+                    logger.exception(
+                        f"Error processing device {device.device_ip}: {str(device_error)}"
+                    )
         except Exception as e:
             logger.exception(f"Error processing postcheck: {str(e)}")
 
@@ -149,18 +151,19 @@ async def create_postcheck(
             precheck = device_to_precheck.get(device.device_ip)
             checks.append({
                 "device_ip": device.device_ip,
-                "precheck_id": str(precheck.id) if precheck else None,
+                "precheck_id": precheck.id if precheck else None,  # Already a string from database
                 "postcheck_id": None,
                 "status": "initiated" if precheck else "skipped"
             })
         
         # Schedule background task
         from ....config import settings
+        from ....database import DATABASE_URL
         background_tasks.add_task(
             process_postcheck,
             request=request,
             batch_id=batch_id,
-            db_url=settings.DATABASE_URL if hasattr(settings, 'DATABASE_URL') else "sqlite+aiosqlite:///f5_prepost.db"
+            db_url=getattr(settings, 'DATABASE_URL', DATABASE_URL)
         )
         
         return {
