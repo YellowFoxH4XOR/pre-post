@@ -12,6 +12,8 @@ from .api.v1.endpoints.postcheck import router as postcheck_router
 from .api.v1.endpoints.diff import router as diff_router
 from .api.v1.endpoints.status import router as status_router
 from .api.v1.endpoints.checks import router as checks_router
+from .api.v1.endpoints.search import router as search_router
+from .api.v1.endpoints.outputs import router as outputs_router
 from .database import init_db
 from .core.logging_config import setup_logging
 from .core.device_handler import F5DeviceHandler
@@ -94,6 +96,8 @@ app.include_router(postcheck_router, prefix=settings.API_V1_STR)
 app.include_router(diff_router, prefix=settings.API_V1_STR)
 app.include_router(status_router, prefix=settings.API_V1_STR)
 app.include_router(checks_router, prefix=settings.API_V1_STR)
+app.include_router(search_router, prefix=settings.API_V1_STR)
+app.include_router(outputs_router, prefix=settings.API_V1_STR)
 
 @app.on_event("startup")
 async def startup_event():

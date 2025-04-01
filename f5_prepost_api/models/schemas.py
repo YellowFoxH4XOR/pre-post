@@ -84,4 +84,39 @@ class CheckListItem(BaseModel):
 class CheckListResponse(BaseModel):
     checks: List[CheckListItem]
     total: int
-    page: int 
+    page: int
+
+class BatchDetails(BaseModel):
+    batch_id: str
+    created_at: datetime
+    status: str
+    total_devices: int
+    completed_devices: int
+    precheck_count: int
+    postcheck_count: int
+
+class BatchSearchResponse(BaseModel):
+    username: str
+    total_batches: int
+    batches: List[BatchDetails]
+
+class CommandOutput(BaseModel):
+    command: str
+    pre_output: Optional[str] = None
+    post_output: Optional[str] = None
+    has_postcheck: bool
+
+class DeviceOutput(BaseModel):
+    device_ip: str
+    precheck_id: str
+    postcheck_id: Optional[str] = None
+    precheck_status: str
+    postcheck_status: Optional[str] = None
+    commands: List[CommandOutput]
+
+class BatchOutputResponse(BaseModel):
+    batch_id: str
+    status: str
+    total_devices: int
+    completed_devices: int
+    devices: List[DeviceOutput] 

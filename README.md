@@ -11,6 +11,10 @@ A FastAPI-based system for managing F5 device configuration verification checks.
 - Connection pooling and reuse
 - Async database operations
 - SQLite storage
+- **NEW** Background processing for improved performance
+- **NEW** Comprehensive command output and diff visualization
+- **NEW** Batch search by username
+- **NEW** Precheck/Postcheck outputs view
 
 ## Prerequisites
 
@@ -79,17 +83,26 @@ POST /api/v1/precheck
 ```
 Creates a pre-change verification check for F5 devices.
 
+**New Feature**: Now operates asynchronously - returns immediately with a 202 status code while processing happens in the background.
+
 ### 2. Post-Check API
 ```http
 POST /api/v1/postcheck/{batch_id}
 ```
 Creates a post-change verification check for F5 devices.
 
+**New Feature**: Now operates asynchronously - returns immediately with a 202 status code while processing happens in the background.
+
 ### 3. Diff API
 ```http
 GET /api/v1/batch/{batch_id}/diff
 ```
 Gets differences between pre and post-change checks.
+
+**New Feature**: Now provides comprehensive output including:
+- All commands executed
+- Detailed diffs for each command
+- Full pre and post outputs for comparison
 
 ### 4. Status API
 ```http
@@ -103,6 +116,29 @@ GET /api/v1/checks
 ```
 Lists and filters check operations.
 
+### 6. Search API
+```http
+GET /api/v1/search/batches?username={username}
+```
+Searches for batch operations by username. Returns all batches created by the specified user with detailed information including:
+- Batch status
+- Device counts
+- Precheck and postcheck counts
+- Timestamps
+
+### 7. Outputs API
+```http
+GET /api/v1/batch/{batch_id}/outputs
+```
+Gets raw command outputs from precheck and postcheck operations for a batch. Supports filtering by:
+- Device IP (optional)
+- Command (optional)
+
+Returns structured output with:
+- Precheck and postcheck status
+- Command outputs aligned for easy comparison
+- Full command output content
+
 ## Connection Management
 
 The application employs an optimized connection management strategy for F5 devices:
@@ -114,6 +150,15 @@ The application employs an optimized connection management strategy for F5 devic
 
 These improvements significantly reduce overhead from repeatedly establishing connections.
 
+## Updated Architecture
+
+The application now implements asynchronous background processing for improved performance:
+
+- **Non-blocking API Endpoints**: Pre-check and post-check operations return immediately
+- **Background Tasks**: Processing continues in the background
+- **Improved Database Session Management**: Individual database sessions for each operation
+- **Enhanced Error Handling**: Isolated error handling per device
+
 ## Example Usage
 
 1. Create a pre-check:
@@ -121,6 +166,7 @@ These improvements significantly reduce overhead from repeatedly establishing co
 curl -X POST "http://localhost:8000/api/v1/precheck" \
   -H "Content-Type: application/json" \
   -d '{
+    "created_by": "operator",
     "devices": [
       {
         "device_ip": "<DEVICE_IP>",
@@ -135,11 +181,28 @@ curl -X POST "http://localhost:8000/api/v1/precheck" \
   }'
 ```
 
+Response will now be immediate with a 202 status code:
+```json
+{
+  "batch_id": "123e4567-e89b-12d3-a456-426614174000",
+  "checks": [
+    {
+      "device_ip": "<DEVICE_IP>",
+      "precheck_id": null,
+      "status": "initiated"
+    }
+  ],
+  "timestamp": "2023-03-31T12:00:00.000000",
+  "message": "PreCheck initiated successfully (processing in background)"
+}
+```
+
 2. Create a post-check:
 ```bash
 curl -X POST "http://localhost:8000/api/v1/postcheck/{batch_id}" \
   -H "Content-Type: application/json" \
   -d '{
+    "created_by": "operator",
     "devices": [
       {
         "device_ip": "<DEVICE_IP>",
@@ -150,9 +213,123 @@ curl -X POST "http://localhost:8000/api/v1/postcheck/{batch_id}" \
   }'
 ```
 
-3. Get the diff:
+3. Get the enhanced diff:
 ```bash
 curl "http://localhost:8000/api/v1/batch/{batch_id}/diff"
+```
+
+Response now includes comprehensive information:
+```json
+{
+  "batch_id": "123e4567-e89b-12d3-a456-426614174000",
+  "devices": [
+    {
+      "device_ip": "<DEVICE_IP>",
+      "precheck_id": "123e4567-e89b-12d3-a456-426614174001",
+      "postcheck_id": "123e4567-e89b-12d3-a456-426614174002",
+      "status": "completed",
+      "summary": {
+        "total_commands": 2,
+        "commands_with_changes": 1,
+        "timestamp": "2023-03-31T12:05:00.000000",
+        "diff": { /* Diffs for each command */ }
+      },
+      "all_commands": [
+        {
+          "command": "<COMMAND_1>",
+          "has_changes": true,
+          "diff": [ /* Detailed diff lines */ ],
+          "pre_output": "Output before changes",
+          "post_output": "Output after changes"
+        },
+        {
+          "command": "<COMMAND_2>",
+          "has_changes": false,
+          "diff": [],
+          "pre_output": "Output with no changes",
+          "post_output": "Output with no changes"
+        }
+      ]
+    }
+  ],
+  "overall_status": "completed"
+}
+```
+
+4. Search for batches by username:
+```bash
+curl "http://localhost:8000/api/v1/search/batches?username=operator"
+```
+
+Response includes all batches created by the specified user:
+```json
+{
+  "username": "operator",
+  "total_batches": 2,
+  "batches": [
+    {
+      "batch_id": "123e4567-e89b-12d3-a456-426614174000",
+      "created_at": "2023-03-31T12:00:00.000000",
+      "status": "completed",
+      "total_devices": 3,
+      "completed_devices": 3,
+      "precheck_count": 3,
+      "postcheck_count": 3
+    },
+    {
+      "batch_id": "123e4567-e89b-12d3-a456-426614174002",
+      "created_at": "2023-03-30T14:30:00.000000",
+      "status": "partial",
+      "total_devices": 2,
+      "completed_devices": 1,
+      "precheck_count": 2,
+      "postcheck_count": 1
+    }
+  ]
+}
+```
+
+5. Get command outputs for a batch:
+```bash
+curl "http://localhost:8000/api/v1/batch/{batch_id}/outputs"
+```
+
+Response includes full command outputs from both precheck and postcheck:
+```json
+{
+  "batch_id": "123e4567-e89b-12d3-a456-426614174000",
+  "status": "completed",
+  "total_devices": 3,
+  "completed_devices": 3,
+  "devices": [
+    {
+      "device_ip": "<DEVICE_IP>",
+      "precheck_id": "123e4567-e89b-12d3-a456-426614174001",
+      "postcheck_id": "123e4567-e89b-12d3-a456-426614174002",
+      "precheck_status": "completed",
+      "postcheck_status": "completed",
+      "commands": [
+        {
+          "command": "<COMMAND_1>",
+          "pre_output": "Output before changes",
+          "post_output": "Output after changes",
+          "has_postcheck": true
+        },
+        {
+          "command": "<COMMAND_2>",
+          "pre_output": "Output with no changes",
+          "post_output": "Output with no changes",
+          "has_postcheck": true
+        }
+      ]
+    }
+  ]
+}
+```
+
+You can also filter by device or command:
+```bash
+curl "http://localhost:8000/api/v1/batch/{batch_id}/outputs?device_ip=<DEVICE_IP>&command=<COMMAND_1>"
 ```
 
 ## Security Considerations
