@@ -41,7 +41,10 @@ async def init_db():
         await conn.run_sync(Base.metadata.create_all)
     logger.info("Database initialized")
 
-# Add this utility function at the top of the file after imports
+# Ensure that AsyncSessionLocal is properly exported
+__all__ = ["get_db", "init_db", "get_async_session", "AsyncSessionLocal", "ensure_str_uuid",
+           "CheckBatch", "PreCheck", "PreCheckOutput", "PostCheck", "PostCheckOutput", "Diff"]
+
 def ensure_str_uuid(uuid_val):
     """Ensures a UUID is converted to string format."""
     if uuid_val is None:

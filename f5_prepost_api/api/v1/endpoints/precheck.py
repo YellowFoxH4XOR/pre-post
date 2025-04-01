@@ -28,37 +28,38 @@ async def process_precheck(
     db_url: str
 ):
     """Process precheck operations in the background."""
-    from ....database import get_async_session
+    from ....database import get_async_session, AsyncSessionLocal
     
-    async with get_async_session() as db:
-        try:
-            logger.info(f"Processing precheck for batch_id: {batch_id}")
-            
-            # Get batch record
+    try:
+        logger.info(f"Processing precheck for batch_id: {batch_id}")
+        
+        # First, get the batch in its own session
+        async with AsyncSessionLocal() as db_batch:
             stmt = select(CheckBatch).filter(CheckBatch.batch_id == batch_id)
-            result = await db.execute(stmt)
+            result = await db_batch.execute(stmt)
             batch = result.scalars().first()
             if not batch:
                 logger.error(f"Batch {batch_id} not found")
                 return
-            
-            # Process each device with better error handling
-            for device in request.devices:
-                try:
-                    logger.info(f"Processing device: {device.device_ip}")
-                    
-                    # Get handler from device manager - reuse if possible
-                    handler = device_manager.get_handler(
-                        device_ip=device.device_ip,
-                        username=device.username,
-                        password=device.password
-                    )
-                    
-                    result = await handler.execute_commands_async(request.commands)
-                    precheck_id = str(uuid.uuid4())
-                    
-                    # Use transaction for each device
-                    async with db.begin():
+        
+        # Process each device with better error handling
+        for device in request.devices:
+            try:
+                logger.info(f"Processing device: {device.device_ip}")
+                
+                # Get handler from device manager - reuse if possible
+                handler = device_manager.get_handler(
+                    device_ip=device.device_ip,
+                    username=device.username,
+                    password=device.password
+                )
+                
+                result = await handler.execute_commands_async(request.commands)
+                precheck_id = str(uuid.uuid4())
+                
+                # Use a new session for each device transaction
+                async with AsyncSessionLocal() as db_device:
+                    async with db_device.begin():
                         # Create precheck record
                         precheck = PreCheck(
                             id=precheck_id,
@@ -68,7 +69,7 @@ async def process_precheck(
                             created_by=request.created_by if hasattr(request, 'created_by') else None,
                             meta_data={"commands": request.commands}
                         )
-                        db.add(precheck)
+                        db_device.add(precheck)
                         
                         if result["status"] == "success":
                             # Save command outputs
@@ -79,31 +80,43 @@ async def process_precheck(
                                     output=output,
                                     execution_order=idx
                                 )
-                                db.add(precheck_output)
-                            
-                            # Update batch completion count
-                            batch.completed_devices += 1
-                except Exception as device_error:
-                    logger.exception(
-                        f"Error processing device {device.device_ip}: {str(device_error)}"
-                    )
-            
-            # Update batch status in a separate transaction
-            async with db.begin():
-                # Refresh the batch object to ensure we have the latest data
-                await db.refresh(batch)
+                                db_device.add(precheck_output)
                 
-                batch.status = (
-                    "completed" 
-                    if batch.completed_devices == batch.total_devices 
-                    else "partial"
+                # Update batch completion count in a separate session
+                async with AsyncSessionLocal() as db_update:
+                    async with db_update.begin():
+                        # Get the latest batch data
+                        stmt = select(CheckBatch).filter(CheckBatch.batch_id == batch_id)
+                        result = await db_update.execute(stmt)
+                        current_batch = result.scalars().first()
+                        
+                        if current_batch and result["status"] == "success":
+                            current_batch.completed_devices += 1
+            except Exception as device_error:
+                logger.exception(
+                    f"Error processing device {device.device_ip}: {str(device_error)}"
                 )
-                logger.info(
-                    f"Batch status: {batch.status}, "
-                    f"completed devices: {batch.completed_devices}/{batch.total_devices}"
-                )
-        except Exception as e:
-            logger.exception(f"Error processing precheck: {str(e)}")
+        
+        # Update batch status in a final separate session
+        async with AsyncSessionLocal() as db_final:
+            async with db_final.begin():
+                # Get the latest batch data
+                stmt = select(CheckBatch).filter(CheckBatch.batch_id == batch_id)
+                result = await db_final.execute(stmt)
+                final_batch = result.scalars().first()
+                
+                if final_batch:
+                    final_batch.status = (
+                        "completed" 
+                        if final_batch.completed_devices == final_batch.total_devices 
+                        else "partial"
+                    )
+                    logger.info(
+                        f"Batch status: {final_batch.status}, "
+                        f"completed devices: {final_batch.completed_devices}/{final_batch.total_devices}"
+                    )
+    except Exception as e:
+        logger.exception(f"Error processing precheck: {str(e)}")
 
 @router.post("/precheck", response_model=PreCheckResponse, status_code=202)
 async def create_precheck(

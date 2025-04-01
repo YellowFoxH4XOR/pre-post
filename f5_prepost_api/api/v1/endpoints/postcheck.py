@@ -28,23 +28,24 @@ async def process_postcheck(
     db_url: str
 ):
     """Process postcheck operations in the background."""
-    from ....database import get_async_session
+    from ....database import AsyncSessionLocal
     
-    async with get_async_session() as db:
-        try:
-            logger.info(f"Processing postcheck for batch_id: {batch_id}")
-            
-            # Get batch record
+    try:
+        logger.info(f"Processing postcheck for batch_id: {batch_id}")
+        
+        # Get batch record in its own session
+        async with AsyncSessionLocal() as db_batch:
             stmt = select(CheckBatch).filter(CheckBatch.batch_id == batch_id)
-            result = await db.execute(stmt)
+            result = await db_batch.execute(stmt)
             batch = result.scalars().first()
             if not batch:
                 logger.error(f"Batch {batch_id} not found")
                 return
-            
-            # Get all prechecks for this batch
+        
+        # Get all prechecks for this batch in another session
+        async with AsyncSessionLocal() as db_prechecks:
             stmt = select(PreCheck).filter(PreCheck.batch_id == batch_id)
-            result = await db.execute(stmt)
+            result = await db_prechecks.execute(stmt)
             prechecks = result.scalars().all()
             
             if not prechecks:
@@ -53,38 +54,39 @@ async def process_postcheck(
             
             # Create a mapping of device_ip to precheck
             device_to_precheck = {pc.device_ip: pc for pc in prechecks}
-            
-            # Process each device
-            for device in request.devices:
-                try:
-                    logger.info(f"Processing postcheck for device: {device.device_ip}")
-                    
-                    # Check if there's a precheck for this device
-                    precheck = device_to_precheck.get(device.device_ip)
-                    if not precheck:
-                        logger.warning(f"No precheck found for device: {device.device_ip}")
-                        continue
-                    
-                    # Get the commands from precheck metadata
-                    if not precheck.meta_data or "commands" not in precheck.meta_data:
-                        logger.warning(f"No commands found in precheck for device: {device.device_ip}")
-                        continue
-                    
-                    commands = precheck.meta_data["commands"]
-                    
-                    # Get handler
-                    handler = device_manager.get_handler(
-                        device_ip=device.device_ip,
-                        username=device.username,
-                        password=device.password
-                    )
-                    
-                    # Execute commands
-                    result = await handler.execute_commands_async(commands)
-                    postcheck_id = str(uuid.uuid4())
-                    
-                    # We need to explicitly begin and commit each transaction
-                    async with db.begin():
+        
+        # Process each device with a new session
+        for device in request.devices:
+            try:
+                logger.info(f"Processing postcheck for device: {device.device_ip}")
+                
+                # Check if there's a precheck for this device
+                precheck = device_to_precheck.get(device.device_ip)
+                if not precheck:
+                    logger.warning(f"No precheck found for device: {device.device_ip}")
+                    continue
+                
+                # Get the commands from precheck metadata
+                if not precheck.meta_data or "commands" not in precheck.meta_data:
+                    logger.warning(f"No commands found in precheck for device: {device.device_ip}")
+                    continue
+                
+                commands = precheck.meta_data["commands"]
+                
+                # Get handler
+                handler = device_manager.get_handler(
+                    device_ip=device.device_ip,
+                    username=device.username,
+                    password=device.password
+                )
+                
+                # Execute commands
+                result = await handler.execute_commands_async(commands)
+                postcheck_id = str(uuid.uuid4())
+                
+                # Use a new session for this device's transaction
+                async with AsyncSessionLocal() as db_device:
+                    async with db_device.begin():
                         # Create postcheck record
                         postcheck = PostCheck(
                             id=postcheck_id,
@@ -92,7 +94,7 @@ async def process_postcheck(
                             status="completed" if result["status"] == "success" else "failed",
                             created_by=request.created_by
                         )
-                        db.add(postcheck)
+                        db_device.add(postcheck)
                         
                         if result["status"] == "success":
                             # Save command outputs
@@ -103,13 +105,13 @@ async def process_postcheck(
                                     output=output,
                                     execution_order=idx
                                 )
-                                db.add(postcheck_output)
-                except Exception as device_error:
-                    logger.exception(
-                        f"Error processing device {device.device_ip}: {str(device_error)}"
-                    )
-        except Exception as e:
-            logger.exception(f"Error processing postcheck: {str(e)}")
+                                db_device.add(postcheck_output)
+            except Exception as device_error:
+                logger.exception(
+                    f"Error processing device {device.device_ip}: {str(device_error)}"
+                )
+    except Exception as e:
+        logger.exception(f"Error processing postcheck: {str(e)}")
 
 @router.post("/postcheck/{batch_id}", response_model=PostCheckResponse, status_code=202)
 async def create_postcheck(
