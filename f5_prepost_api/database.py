@@ -5,34 +5,32 @@ from sqlalchemy.dialects.sqlite import BLOB
 import uuid
 from datetime import datetime
 import logging
+from contextlib import asynccontextmanager
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Database engine and session setup
-engine = create_async_engine(
-    "sqlite+aiosqlite:///f5_prepost.db",
-    echo=True,
-    connect_args={"check_same_thread": False}
-)
-
+DATABASE_URL = "sqlite+aiosqlite:///f5_prepost.db"
+engine = create_async_engine(DATABASE_URL)
 AsyncSessionLocal = sessionmaker(
-    engine, class_=AsyncSession, expire_on_commit=False
+    engine, expire_on_commit=False, class_=AsyncSession
 )
 
 Base = declarative_base()
 
-# Database dependency
+# Dependency to get DB session for FastAPI
 async def get_db():
-    """Get database session with transaction management."""
+    async with AsyncSessionLocal() as session:
+        yield session
+
+# Context manager for getting a fresh session
+@asynccontextmanager
+async def get_async_session():
     session = AsyncSessionLocal()
     try:
         yield session
-    except Exception as e:
-        await session.rollback()
-        logger.error(f"Database error: {str(e)}")
-        raise
     finally:
         await session.close()
 
