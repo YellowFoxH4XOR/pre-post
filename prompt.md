@@ -1,68 +1,113 @@
+# Prompt Guide: Comprehensive Angular Best Practices for AI Agents
 
-# Prompt Guide: Angular Best Practices for AI Agents
+**Goal:** To guide an AI agent in generating, reviewing, or refactoring Angular code according to current best practices, ensuring the development of scalable, maintainable, performant, accessible, and secure web applications.
 
-**Goal:** To guide an AI agent in generating, reviewing, or refactoring Angular code according to current best practices, ensuring the development of scalable, maintainable, and performant web applications.
-
-**Context:** Assume work is being done on an Angular application using TypeScript, targeting the latest stable Long-Term Support (LTS) version unless otherwise specified.
+**Context:** Assume work is being done on an Angular application using TypeScript, targeting the latest stable Long-Term Support (LTS) version unless otherwise specified. Prioritize Standalone APIs for new development.
 
 ## Core Principles & Best Practices
 
-### 1. Angular CLI Usage
-*   **Standardize Workflow:** Leverage the Angular CLI (`ng`) for core development tasks. Use `ng generate` (e.g., `ng g c my-component`) to create components, services, modules, etc., ensuring consistency and adherence to the conventional project structure.
-*   **Essential Commands:** Utilize standard commands like `ng build` for compiling the application, `ng serve` for local development, `ng test` for running unit tests, and `ng update` for managing dependencies and facilitating smooth migrations between Angular versions.
+### 1. Project Setup & CLI Usage
+*   **Angular CLI:** The foundation. Use `ng new`, `ng generate` (or `ng g`), `ng serve`, `ng build`, `ng test`, `ng lint`, and `ng update` consistently.
+*   **Workspace Configuration (`angular.json`):** Understand and leverage `angular.json` for build configurations, proxy settings, and project defaults.
+*   **Strict Mode:** Enable strict mode (`ng new --strict`) for new projects to enforce stricter TypeScript settings and Angular template checks, catching potential issues earlier.
 
-### 2. Component-Based Architecture
-*   **Modularity:** Design the application using small, reusable, and well-defined components.
-*   **Clear Communication:** Use `@Input()` decorators for passing data into a component and `@Output()` decorators (typically with `EventEmitter`) for sending data or events out of a component.
-*   **Single Responsibility:** Ensure each component focuses on a specific piece of functionality or UI element.
+### 2. Architecture & Code Organization
+*   **Standalone APIs:** **Prioritize** standalone components, directives, and pipes for new features. They simplify the architecture by reducing the need for `NgModule` boilerplate.
+*   **Feature Modules (for older/larger apps):** If not using standalone exclusively, group related components, services, and routes into cohesive feature modules. Use `NgModule` to encapsulate features.
+*   **Folder Structure:** Adopt a consistent and scalable folder structure (e.g., feature-based grouping: `src/app/features/feature-name/components`, `src/app/core`, `src/app/shared`).
+*   **Core Module/Services:** Centralize application-wide singleton services (like authentication, logging) often provided in `root`.
+*   **Shared Module/Components:** Place reusable components, directives, and pipes used across multiple feature modules here (if not using standalone).
 
-### 3. TypeScript Integration
-*   **Strong Typing:** Fully utilize TypeScript's static typing features (interfaces, types, classes) to improve code clarity, enable better tooling (like autocompletion and refactoring), and catch errors during development rather than at runtime.
-*   **Avoid `any`:** Refrain from using the `any` type whenever a more specific type can be defined. This enhances type safety and code predictability.
+### 3. Component Design
+*   **Smart/Container & Presentational/Dumb Components:** Separate components responsible for fetching/managing state (smart) from those purely displaying data and emitting events (presentational). This improves reusability and testability.
+*   **Inputs (`@Input()`) & Outputs (`@Output()`):** Define clear component APIs. Use setters for inputs if logic needs to run when an input changes. Use `EventEmitter` for outputs.
+*   **Single Responsibility Principle (SRP):** Keep components focused on a single task or piece of UI.
+*   **Lifecycle Hooks:** Understand and use component lifecycle hooks (`OnInit`, `OnDestroy`, `OnChanges`, etc.) appropriately. Implement `OnDestroy` to clean up subscriptions and avoid memory leaks.
 
-### 4. State Management & Reactivity
-*   **Angular Signals:** Prioritize Angular Signals for managing component state and reactivity. Signals offer fine-grained change detection and often lead to simpler, more performant code compared to traditional methods, especially for new development.
-*   **RxJS for Complexity:** Use RxJS for handling complex asynchronous operations, managing streams of events (like user input or WebSocket messages), and composing asynchronous logic where Signals might be less suitable.
+### 4. TypeScript & Coding Style
+*   **Strong Typing:** Maximize TypeScript's benefits. Define interfaces and types for data structures (API responses, models). Avoid `any` whenever possible.
+*   **Readonly:** Use the `readonly` modifier for properties that should not be reassigned after initialization.
+*   **Linting & Formatting:** Enforce code style consistency using ESLint (`ng lint`) and Prettier. Configure rules in `.eslintrc.json` and `.prettierrc.json`.
+*   **Naming Conventions:** Follow standard naming conventions (e.g., PascalCase for classes/interfaces, camelCase for variables/functions, `$` suffix for Observable variables).
 
-### 5. Modularity & Dependency Injection (DI)
-*   **Organization:** Structure the application into logical feature areas using NgModules or standalone components/directives/pipes.
-*   **Leverage DI:** Utilize Angular's built-in Dependency Injection (DI) system extensively. Provide services using `providedIn: 'root'` for application-wide singletons or within specific modules/components for more scoped instances. DI promotes loose coupling, testability, and code reuse.
+### 5. State Management & Reactivity
+*   **Angular Signals:** **Prefer** Signals for managing component-level state and reactivity due to their fine-grained change detection and performance benefits.
+*   **RxJS:** Use RxJS for complex asynchronous operations, event streams, and managing state across multiple services. Key operators: `map`, `filter`, `switchMap`, `catchError`, `takeUntil`, `debounceTime`.
+*   **State Management Libraries (Optional):** For complex global state, consider libraries like NgRx (Redux pattern) or NgXs. Evaluate if the complexity warrants their use over simpler service-based state or Signals.
+*   **Subscription Management:** Crucial for avoiding memory leaks with RxJS. Use the `async` pipe in templates (preferred), `takeUntil` pattern with a subject, `take(1)` for single-value streams, or manual `unsubscribe()` in `ngOnDestroy`.
 
-### 6. Routing
-*   **Navigation:** Implement application navigation using the official `@angular/router` module.
-*   **Lazy Loading:** Employ lazy loading for feature modules or routing configurations (using `loadChildren` or `loadComponent`) to significantly improve initial application load times by only loading code when needed.
-*   **Route Guards:** Protect routes using guards (e.g., `CanActivate`, `CanDeactivate`) to control access based on conditions like user authentication or unsaved changes.
-*   **Route Resolvers:** Use resolvers (`ResolveFn`) to pre-fetch data required by a component before the route activation completes, improving user experience by avoiding empty component states.
+### 6. Modularity & Dependency Injection (DI)
+*   **Standalone APIs:** Import standalone components/directives/pipes directly where needed.
+*   **`providedIn: 'root'`:** The standard way to provide application-wide singleton services.
+*   **Component/Module Providers:** Provide services at the component or module level for more scoped instances when necessary.
+*   **Injection Tokens:** Use `InjectionToken` for providing non-class dependencies or configuring services.
 
-### 7. Forms Handling
-*   **Structured Forms:** Use Angular's Reactive Forms API for complex forms requiring robust validation, dynamic controls, and easier testing. Template-Driven Forms can be suitable for simpler scenarios.
-*   **Validation:** Implement comprehensive validation using Angular's built-in validators (e.g., `Validators.required`, `Validators.email`) and create custom validators for specific business rules.
+### 7. Routing (`@angular/router`)
+*   **Lazy Loading:** Essential for performance. Use `loadComponent` (for standalone) or `loadChildren` (for modules) in route definitions.
+*   **Route Guards:** Implement `CanActivate`, `CanActivateChild`, `CanDeactivate`, `CanMatch` for controlling navigation flow (authentication, authorization, unsaved changes).
+*   **Route Resolvers (`ResolveFn`):** Pre-fetch data needed for a route before activation.
+*   **Child Routes & Nested Routers:** Structure complex application sections using child routes.
+*   **Typed Routers:** Leverage typed routers for better type safety in route parameters and navigation.
 
-### 8. HTTP Communication
-*   **`HttpClient`:** Use the `HttpClientModule` and inject the `HttpClient` service for making asynchronous requests to backend APIs.
-*   **Error Handling:** Implement robust error handling for HTTP requests (e.g., using RxJS `catchError` operator).
-*   **Subscription Management:** Prevent memory leaks by properly managing Observable subscriptions. Use the `async` pipe in templates, or operators like `takeUntil`, `take(1)`, or manual `unsubscribe()` in component logic.
+### 8. Forms (`@angular/forms`)
+*   **Reactive Forms:** Generally preferred for complex forms due to testability, explicit control management, and easier handling of dynamic scenarios.
+*   **Template-Driven Forms:** Suitable for simpler forms where validation and logic are minimal.
+*   **Custom Validators:** Create reusable custom validation functions.
+*   **Async Validators:** Handle validation logic that requires asynchronous operations (e.g., checking username availability).
+*   **Value Accessors (`ControlValueAccessor`):** Implement this interface to integrate custom form controls with Angular's form APIs.
 
-### 9. Performance Optimization
-*   **Declarative Lazy Loading (`@defer`):** Use `@defer` blocks within component templates for fine-grained, declarative lazy loading of components, directives, or pipes based on various triggers (viewport, interaction, timer, etc.).
-*   **Rendering Strategies:** Leverage Server-Side Rendering (SSR) or Static Site Generation (SSG) with hydration for improved initial load performance (First Contentful Paint) and better SEO.
-*   **Change Detection:** Use the `ChangeDetectionStrategy.OnPush` strategy for components whenever possible to reduce the scope and frequency of change detection cycles.
-*   **Image Optimization:** Utilize the `NgOptimizedImage` directive (`<img ngSrc="...">`) for automatic image optimization (lazy loading, preconnect hints, automatic `srcset` generation).
-*   **Debugging:** Use Angular DevTools to inspect component structure, profiler performance, and debug applications effectively.
+### 9. HTTP Communication (`@angular/common/http`)
+*   **`HttpClient` Service:** The standard for making HTTP requests.
+*   **Interceptors (`HttpInterceptor`):** Intercept requests and responses globally to handle tasks like adding authentication tokens, logging, or centralized error handling.
+*   **Typed Clients:** Define interfaces for API request/response payloads for type safety.
+*   **Error Handling:** Use RxJS `catchError` and `retry` operators effectively.
 
-### 10. Security Considerations
-*   **Built-in Protection:** Understand and rely on Angular's built-in protections against common web vulnerabilities, such as Cross-Site Scripting (XSS), through automatic output sanitization.
-*   **Trusted Types:** Be aware of and potentially enforce Trusted Types for stricter security policies.
-*   **Input Handling:** Always treat user input as potentially unsafe and handle it accordingly.
+### 10. Performance Optimization
+*   **Change Detection (`OnPush`):** Use `ChangeDetectionStrategy.OnPush` on components to minimize change detection cycles. Trigger updates explicitly via `async` pipe, Signal changes, `@Input` changes (for primitives/new object references), or `ChangeDetectorRef.markForCheck()`.
+*   **`@defer` Blocks:** Use declarative deferrable views for fine-grained lazy loading within templates.
+*   **`trackBy` Function:** Use `trackBy` with `*ngFor` to help Angular efficiently update lists by tracking items by a unique identifier.
+*   **Bundle Analysis:** Use tools like `source-map-explorer` or `webpack-bundle-analyzer` (via `ng build --stats-json`) to inspect bundle sizes and identify optimization opportunities.
+*   **SSR/SSG & Hydration:** Implement Angular Universal for Server-Side Rendering or Static Site Generation to improve perceived performance and SEO.
+*   **`NgOptimizedImage`:** Use the `<img ngSrc="...">` directive for optimized image loading.
+*   **Web Workers:** Offload CPU-intensive tasks to background threads using Web Workers.
 
-### 11. Testing Practices
-*   **Unit Testing:** Write comprehensive unit tests for components, services, pipes, and directives using frameworks like Jasmine and test runners like Karma or Jest. Focus on testing individual units in isolation.
-*   **End-to-End (E2E) Testing:** Implement E2E tests using tools like Cypress or Playwright to simulate user interactions and verify application workflows from start to finish.
+### 11. Security
+*   **Sanitization:** Trust Angular's built-in sanitization for preventing XSS via property binding and interpolation. Use `DomSanitizer` explicitly only when necessary and with extreme caution.
+*   **Avoid `bypassSecurityTrust...`:** Use `DomSanitizer.bypassSecurityTrust...` methods sparingly and only when you fully understand the security implications.
+*   **Template Injection:** Be cautious when dynamically generating templates.
+*   **CSRF Protection:** Implement Cross-Site Request Forgery protection mechanisms (often handled server-side with token synchronization).
+*   **Content Security Policy (CSP):** Define a strict CSP header on the server.
+*   **Regular Dependency Updates:** Keep Angular and third-party libraries updated to patch known vulnerabilities (`ng update`).
+
+### 12. Testing
+*   **Testing Pyramid:** Focus on a large base of unit tests, fewer integration tests, and even fewer E2E tests.
+*   **Unit Tests (Jasmine/Karma/Jest):** Test components, services, pipes in isolation. Use `TestBed` for configuring testing modules/providers. Mock dependencies effectively.
+*   **Component Testing:** Test component logic, template rendering, input/output interactions, and event handling.
+*   **Integration Tests:** Test interactions between multiple components or services.
+*   **E2E Tests (Cypress/Playwright):** Test user flows through the application in a real browser environment.
+*   **Code Coverage:** Aim for meaningful code coverage, focusing on critical paths and complex logic.
+
+### 13. Accessibility (a11y)
+*   **Semantic HTML:** Use appropriate HTML5 elements (`<nav>`, `<main>`, `<button>`, etc.).
+*   **ARIA Attributes:** Use Accessible Rich Internet Applications (ARIA) attributes where necessary to enhance semantics for assistive technologies.
+*   **Keyboard Navigation:** Ensure all interactive elements are focusable and operable via keyboard.
+*   **Focus Management:** Manage focus programmatically when UI changes dynamically (e.g., opening modals, navigating).
+*   **Color Contrast:** Ensure sufficient contrast between text and background colors.
+*   **Testing Tools:** Use accessibility linters and browser extensions (like Axe DevTools) to audit accessibility.
+
+### 14. Internationalization (i18n)
+*   **Angular i18n (`@angular/localize`):** Use Angular's built-in i18n tools for marking text in templates (`i18n` attribute) and code for translation.
+*   **Translation Files:** Manage translations in standard formats (XLIFF, JSON, etc.).
+*   **Build-time i18n:** Generate separate application builds for each language (common approach).
+
+### 15. UI Component Libraries
+*   **Angular Material/CDK:** Leverage Angular Material for pre-built, high-quality UI components following Material Design principles. Use the Component Dev Kit (CDK) for building custom components with common interaction patterns (overlays, scrolling, drag-and-drop).
+*   **Other Libraries:** Consider other libraries like NG-ZORRO, PrimeNG, etc., based on project requirements.
 
 ## Instructions for Agent
 
-*   **Generation:** When creating new Angular code, strictly adhere to the principles outlined above.
-*   **Review/Refactoring:** When analyzing existing code, identify deviations from these best practices and propose specific, actionable improvements.
-*   **Priorities:** Emphasize code clarity, long-term maintainability, and application performance.
+*   **Generation:** When creating new Angular code, strictly adhere to the principles outlined above, prioritizing modern practices like Standalone APIs and Signals.
+*   **Review/Refactoring:** When analyzing existing code, identify deviations from these best practices and propose specific, actionable improvements with clear justifications.
+*   **Priorities:** Emphasize code clarity, long-term maintainability, performance, security, and accessibility.
 *   **Justification:** Clearly explain the rationale behind any suggested code changes, referencing the relevant best practice.
 *   **Compatibility:** Ensure generated or modified code is compatible with the target Angular version (defaulting to the latest LTS).
