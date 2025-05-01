@@ -1,0 +1,45 @@
+# AI Operational Ruleset (Version 1.0)
+
+## Preamble
+Mandatory operational procedures for the you. These rules must be adhered to for every task received, ensuring consistency, transparency, and traceability. Failure to follow these rules should be reported as an error.
+
+## Core Rule 1: Always Read Rules First (`rules.mdc`)
+1.  **Mandatory First Step:** Before initiating *any* task or processing *any* user request, you **must** first access and read the contents of this file (`rules.mdc`) located in `.vscode/rules.mdc`.
+2.  **Comprehension:** Ensure you understand and parse these rules to guide your subsequent actions.
+3.  **Error Handling:** If `rules.mdc` cannot be found, accessed, or parsed, report this specific error immediately and await further instructions.
+
+## Core Rule 2: Explain Actions (`explain.md`)
+1.  **Purpose:** To provide a detailed, pedagogical explanation of the tasks performed, facilitating user learning and understanding.
+2.  **Trigger:** This rule activates *after* successfully completing a task *and* after the corresponding `changelog.md` entry has been made.
+3.  **Action:**
+    *   Locate the `explain.md` file in the root directory.
+    *   If it does not exist, create it.
+    *   Append a new explanation section to the end of the file.
+4.  **Content & Style:**
+    *   **Teacher/Student Tone:** Address the user ("me") directly, explaining the concepts and actions clearly, like a teacher(you) guiding a student(me).
+    *   **Structure:** For each task, explain:
+        *   **The Goal:** What was the objective of the task requested by the user?
+        *   **The Plan:** What was the high-level approach or strategy?
+        *   **The Steps:** What specific actions were taken? (e.g., "First, I needed to read file X," "Then, I analyzed data Y using method Z," "Finally, I wrote the results to file A"). Referencing the `changelog.md` entry can be helpful.
+        *   **The Reasoning:** *Why* were these steps chosen? Explain the logic, algorithms, or constraints considered.
+        *   **The Outcome:** What was the final result? How does it meet the goal?
+        *   **Changelog:** To provide a chronological record of all significant actions performed by the AI. (Example: `- [2025-05-01 09:45:00 IST] - Added user authentication module. Files affected: /src/auth.py, /tests/test_auth.py`)
+        *   **(Optional) Further Learning:** Suggest related concepts or potential next steps for the user to explore.
+    *   **Clarity:** Use clear language, avoid jargon where possible or explain it if necessary. Use formatting (like headings, lists, code blocks) to improve readability.
+5.  **Separation:** Clearly delineate explanations for different tasks, perhaps using timestamps or horizontal rules (`---`).
+
+## Core Rule 3: Utilize Current Task Memory (`my_current_task.md`)
+1.  **Purpose:** To maintain context and state for the *single task currently being processed*. This file acts as your short-term operational memory.
+2.  **Lifecycle:**
+    *   **a) Before Starting a New Task:** Clear (empty) the contents of `my_current_task.md`. This signifies readiness for a new, distinct task.
+    *   **b) Upon Receiving/Starting a Task:** Write the primary goal, key inputs, constraints, and any initial thoughts or plans related to the *current* task into `my_current_task.md`.
+    *   **c) During Task Execution:** Update this file dynamically. Record intermediate results, errors encountered, clarifications needed, decisions made, or planned next sub-steps *relevant only to the ongoing task*.
+    *   **d) Before Generating Output/Taking Action:** **Always** read the contents of `my_current_task.md` to refresh your context and ensure your next action aligns with the current task's state and objective.
+    *   **e) Upon Apparent Task Completion & Confirmation: After finishing the primary requested action(s) and updating explain.md, you must ask the user if the overall task is considered complete. Only proceed to clear my_current_task.md (as per step 2a) if the user explicitly confirms completion. If the user indicates the task is ongoing or has follow-up steps, retain the contents of my_current_task.md to maintain context for the continuation of the same task.
+3.  **Scope:** This file is *exclusively* for the context of the immediate task. It is *not* for long-term memory, rules, or historical data (that's what other files/mechanisms are for).
+4.  **Volatility:** Treat the contents as temporary and specific to the active operation.
+
+## General Principles
+*   **Atomicity:** Aim to complete the full sequence (Task -> Changelog -> Explain -> Clear Task File) for each distinct user request where applicable.
+*   **Error Reporting:** If any step in these rules fails (e.g., file permission error, unable to parse data), report the specific failure clearly and stop processing the current task until resolved.
+*   **Overrides:** These rules are always active unless explicitly countermanded by the user *for a specific, temporary instance*.
