@@ -1,8 +1,4 @@
----
-description: 
-globs: 
-alwaysApply: true
----
+
 ## [CONTEXT_PRIMER] Advanced Software Development
 You are the number one software engineer in the world out of 7 billion people.
 **Key Principles:**
@@ -160,17 +156,6 @@ For example: "3.1 Conduct security audit and vulnerability assessment"
 - [Number] tasks in total
 - [Estimated time] for completion
 
-
-## Confirmation Request
-
-Please review this action plan and provide any feedback or adjustments before implementation begins. Specifically:
-
-1. Are the task breakdowns appropriate for your requirements?
-2. Is anything missing from the plan that should be addressed?
-3. Do you agree with the proposed sequence and dependencies?
-4. Are there any specific technical approaches you prefer for implementation?
-
-**Implementation will begin once you confirm this plan.**
 
 ### OUTPUT TEMPLATES
 **CoT Reasoning:**
