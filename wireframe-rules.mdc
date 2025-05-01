@@ -1,78 +1,92 @@
----
-description: 
-globs: 
-alwaysApply: false
----
-# 📐 Rules for Generating High-Accuracy Wireframe Descriptions
+# 📐 Rules for Generating High-Accuracy UI Wireframe Documentation (Text & Diagram)
 
-> Use this as a system prompt or design instruction for a language model to generate reliable, professional wireframe documentation.
+> Use this as a system prompt or design instruction for generating reliable, professional wireframe documentation applicable across various web and mobile frameworks. This includes both a detailed **textual description** and a corresponding **single, primary visual diagram**.
 
 ---
 
 ## 1. 🎯 Define the Core Context
 
-Start with a clear summary:
-- **What is it?** (e.g., "SaaS Dashboard", "Mobile Shopping App")
-- **Which screen?** (e.g., "Dashboard Overview", "User Registration Form")
-- **Who is it for?** (Target user, e.g., "Project Managers", "Freelancers")
-- **Goal of the screen?** (e.g., "Display KPIs", "Enable easy sign-up")
+Start with a concise summary establishing the scene:
+-   **What is it?** (e.g., "SaaS Dashboard Web App", "Mobile E-commerce App Screen", "User Profile Page")
+-   **Which screen/view?** (e.g., "Dashboard Overview", "Product Details Screen", "Settings Form")
+-   **Who is the target user?** (e.g., "Data Analysts", "Mobile Shoppers", "Registered Users")
+-   **What is the primary goal of this screen?** (e.g., "To provide a high-level overview of key metrics", "To display product information and allow adding to cart", "To enable users to update their profile information")
 
 ---
 
-## 2. 🧱 Enumerate All Essential Elements
+## 2. 🖼️ Accompanying Visual Diagram (Mandatory - Single Primary View)
 
-List **all UI components**, with precision:
-- Header (e.g., Logo left, Search center, User Avatar right)
-- Sidebar Navigation (items: Dashboard, Reports, Settings)
-- Cards (e.g., Metrics, Quick Actions)
-- Forms (e.g., Name input, Email input, Submit button)
-- Charts (e.g., Line chart of weekly activity)
-- Buttons (label each button clearly)
-- Tables (include column names)
-- Any other elements (filters, tags, dropdowns, tabs, modals, etc.)
+**A single, primary low-fidelity visual diagram MUST accompany the textual description.**
+-   **Purpose:** To provide a quick, visual overview of the layout, structure, and placement of key elements, typically representing the **desktop or primary view**.
+-   **Fidelity:** Keep it simple (low-fidelity). Focus on boxes, placeholders, basic shapes, and minimal text labels for components. **Avoid high-fidelity styling, colors (unless explicitly part of basic structure), or detailed graphics.**
+-   **Content:** Should clearly show the main regions (Header, Sidebar, Content, Footer), the arrangement of major UI elements (Cards, Forms, Buttons, Images), and their relative positions and hierarchy in the primary view.
+-   **Format:** Can be a digital wireframe (e.g., using tools like Balsamiq, Figma, Sketch in lo-fi mode), a structured box diagram, or even a clear, legible hand-drawn sketch. The diagram should be easily understandable alongside the text description.
 
 ---
 
-## 3. 📐 Describe Layout & Hierarchy
+## 3. 🧱 Enumerate All Essential UI Elements (in Text)
 
-Specify:
-- **Overall layout:** (e.g., "Header + Sidebar + 2x2 grid layout")
-- **Visual priority:** (e.g., "Key Metrics are top-left and prominent")
-- **Positioning:** (e.g., "Search bar to the right of logo", "Cards below header")
-
----
-
-## 4. 📱 Mandate Responsive Design
-
-Ensure layout adapts across devices:
-- **Desktop:** Full layout (e.g., sidebar always visible)
-- **Tablet:** Sidebar may collapse to icons; grid reduces to 2 columns
-- **Mobile:** Sidebar hidden in hamburger menu; cards stack vertically; font size and spacing adjusted
+List **every distinct UI element** visible on the screen *and* represented in the primary diagram, using common terminology:
+-   **Header/App Bar:** (e.g., Contains Logo placeholder (left), Search Input box (center), User Menu icon (right))
+-   **Navigation (Sidebar/Tabs/Bottom Nav):** (e.g., Vertical list area with link labels: Dashboard, Reports, Settings; or Horizontal tab indicators: Overview, Details)
+-   **Card Elements:** (e.g., Rectangular containers representing cards, labeled: "KPI Card", "Recent Activity Card")
+-   **Form Elements:** (e.g., Clearly demarcated form area with labeled boxes for Inputs (Name, Email), Checkbox markers, Dropdown indicator, and a "Submit" Button shape)
+-   **Data Visualization Elements:** (e.g., Placeholder box labeled "Bar Chart Area" or "Line Graph")
+-   **Button Elements:** (Represented as rectangles/buttons, labeled by function: "Save", "Cancel", "Add Item")
+-   **List/Table Elements:** (e.g., A box representing a list area; A grid structure labeled "Data Table" with placeholder column headers)
+-   **Other Interactive Elements:** (Show placeholders/icons for Filters, Tags, Modals, etc., as relevant)
+-   **Text Content:** Use placeholder text (e.g., "Lorem Ipsum" or "Heading Text") in the diagram, but describe key text content (headings, labels) here in the text description.
+-   **Image/Icon Elements:** Use simple placeholders (e.g., a box with an 'X' or a basic icon shape) in the diagram, describe their purpose here.
 
 ---
 
-## 5. 🎨 Visual Style & Color Palette (Optional)
+## 4. 📐 Describe Layout, Hierarchy & Spacing (in Text)
 
-Include aesthetic guidance:
-- **Style keywords:** (e.g., "Clean", "Futuristic", "Minimal", "Professional")
-- **Color palette suggestion:**
-  - 3–5 unique hex codes
-  - Label usage: (e.g., Primary Button, Background, Accent, Text)
-  - Optional theme name: (e.g., "Quantum Clarity", "Neon Blueprint")
+Specify the arrangement and visual flow *as depicted in the primary diagram*, using standard layout concepts:
+-   **Overall Layout Structure:** (Reference the diagram, e.g., "As shown in the diagram, the primary layout is: Fixed Header, Main area with Left Sidebar and Right Content panel.")
+-   **Element Placement:** (Describe positions relative to the diagram, e.g., "The Search Bar is in the Header, right of the Logo (Diagram Ref: H2).", "Action Buttons are grouped bottom-right in the Form Area (Diagram Ref: F5).")
+-   **Visual Hierarchy:** (Explain the prominence shown in the diagram, e.g., "The main Title (Diagram Ref: C1) is visually dominant.", "KPI Cards (Diagram Ref: C2-C4) occupy the top row of the content area.")
+-   **Spacing & Alignment:** (Describe key spacing/alignment visible in the diagram, e.g., "Consistent spacing between Card elements is shown.", "Form labels are aligned above input fields.")
 
 ---
 
-## 6. 📄 Format the Output
+## 5. 📱 Address Responsive / Adaptive Design (in Text)
 
-Always organize the wireframe text in the following structure:
-1. **Header**
-2. **Sidebar Navigation**
-3. **Main Content Area**
-4. **Footer (if applicable)**
-5. **Layout & Visual Hierarchy**
-6. **Responsiveness**
-7. **Visual Style & Color Palette (Optional)**
+Detail how the layout *shown in the primary diagram* adapts across different screen sizes. **Describe the changes textually**, referencing elements from the main diagram. *(Optionally, simplified diagrams for key breakpoints can be provided separately but are not required by default)*.
+-   **Large Screens (Desktop):** This is typically represented by the main diagram. State this explicitly (e.g., "The accompanying diagram shows the large screen layout.")
+-   **Medium Screens (Tablet):** Describe changes based on the main diagram (e.g., "On tablets, the Sidebar (Diagram Ref: Nav) collapses to icons. The Content Area grid (Diagram Ref: C2-C7) reflows to 2 columns.")
+-   **Small Screens (Mobile):** Describe changes based on the main diagram (e.g., "On mobile, the Header (Diagram Ref: H1-H3) simplifies, showing only Logo and Menu Icon. Navigation (Diagram Ref: Nav) moves into a hamburger menu. Content Area elements (Diagram Ref: C1-C7) stack vertically.")
+-   **Adaptation Mechanism (Conceptual):** Briefly mention the approach (e.g., "Using responsive techniques to reflow elements shown in the primary diagram.")
 
-Use bold section headings and bullet points for clarity.
+---
+
+## 6. 🎨 Visual Style & Theme (Optional - Text Only)
+
+Provide *textual* guidance on the intended aesthetic. **This should generally NOT be reflected in the low-fidelity diagram.**
+-   **Style Keywords:** (e.g., "Clean", "Minimalist", "Corporate")
+-   **Color Palette (Theme Colors):**
+    -   Provide 3-5 key hex codes or color descriptions.
+    -   Define semantic usage: (e.g., Primary Action, Background, Accent, Text)
+    -   Optionally name the theme.
+-   **Typography Basics:** (Optional: Specify font family, base size)
+-   **General Styling Notes:** (Optional: e.g., "Rounded corners on buttons", "Subtle shadows on cards")
+
+---
+
+## 7. 📄 Format the Output Consistently
+
+Organize the generated **textual description** using this structure. Ensure it clearly complements the **single, accompanying visual diagram**.
+
+1.  **Screen Context** (From step 1)
+2.  **Reference to Visual Diagram** (Explicitly mention the diagram, e.g., "See accompanying wireframe diagram for the primary visual layout.")
+3.  **Header / App Bar** (Text description)
+4.  **Navigation Element(s)** (Text description)
+5.  **Main Content Area Elements** (Text description)
+6.  **Footer / Bottom Bar (if applicable)** (Text description)
+7.  **Layout, Hierarchy & Spacing** (Text description referencing the diagram)
+8.  **Responsive / Adaptive Design** (Text description of changes relative to the primary diagram)
+9.  **Visual Style & Theme (Optional)** (Text description)
+
+Use **bold headings** for sections and **bullet points** for lists. Ensure descriptions are detailed enough to understand the elements and layout shown in the diagram, and how that layout adapts.
 
 ---
