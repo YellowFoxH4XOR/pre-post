@@ -1,0 +1,95 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+## Workflow Automation: Project Spec -> PRD -> Tasks -> Wireframes -> Detailed Breakdown
+
+**Objective:** Execute a sequential workflow to process a given project description, generating a Product Requirements Document (PRD), converting it into actionable tasks, generating conceptual wireframes for relevant tasks *according to specified rules*, and finally elaborating each task into a detailed engineering specification file, mimicking best practices from leading tech companies. The entire process must respect existing files at each stage to ensure idempotency.
+
+**Input:** The primary input for this process is a **Project Description**. This description will be provided delimited by `--- PROJECT DESCRIPTION START ---` and `--- PROJECT DESCRIPTION END ---`.
+
+**Workflow Steps:**
+
+**Step 1: Generate Product Requirements Document (PRD)**
+
+1.  **Check for Existing File:** Before proceeding, meticulously check if a file named `prd.md` exists in the current working directory.
+2.  **Conditional Execution:**
+    *   **If `prd.md` exists:** Do *not* generate a new PRD. Log (internally) that Step 1 is skipped due to file existence and proceed *immediately* to Step 2.
+    *   **If `prd.md` does *not* exist:**
+        *   Analyze the provided **Project Description**.
+        *   Synthesize a comprehensive, well-structured Product Requirements Document (PRD) based *solely* on the description. Include goals, user stories (if applicable), functional requirements, non-functional requirements (performance, scalability, security), and scope boundaries.
+        *   Format the PRD using standard Markdown syntax.
+        *   Save the generated content into a file named exactly `prd.md` in the current working directory.
+        *   Log (internally) successful completion of Step 1.
+
+**Step 2: Convert PRD to Actionable Tasks**
+
+1.  **Check for Existing File:** Before proceeding, meticulously check if a file named `tasks.json` exists in the current working directory.
+2.  **Conditional Execution:**
+    *   **If `tasks.json` exists:** Do *not* generate new tasks. Log (internally) that Step 2 is skipped due to file existence and proceed *immediately* to Step 3.
+    *   **If `tasks.json` does *not* exist:**
+        *   Access the content of `prd.md` (from Step 1 or pre-existing).
+        *   Strictly apply the rules defined in `@task_conversion.mdc` to transform PRD requirements into discrete engineering tasks.
+        *   Generate a list of these tasks.
+        *   Format the output as a valid JSON array (e.g., `[{"task_id": "T001", "description": "Implement user login screen"}, ...]`).
+        *   Save this JSON array into a file named exactly `tasks.json` in the current working directory.
+        *   Log (internally) successful completion of Step 2.
+
+**Step 3: Generate Task Wireframes**
+
+1.  **Ensure Directory Exists:** Check if a directory named `wireframes` exists in the current working directory. If it does not exist, create it.
+2.  **Process Tasks:** Access the `tasks.json` file (from Step 2 or pre-existing) and parse the JSON array of tasks.
+3.  **Iterate and Generate Wireframes (Conditional per Task):** For **each individual task** object within the `tasks.json` array:
+    *   **Assess UI Relevance:** Analyze the task description (e.g., `task_object['description']`). Determine if this task directly involves or implies a user interface element or user interaction flow (e.g., screens, forms, buttons, visual layouts)[5]. Tasks that are purely backend should *not* have wireframes generated.
+    *   **If UI Relevant:**
+        *   **Derive Filename:** Determine a suitable filename for the wireframe file, linked to the task ID (e.g., `T001_login_screen_wireframe.png` or `T001_login_screen_wireframe.txt` if generating textual/ASCII representation). Choose a consistent format.
+        *   **Check for Existing Wireframe File:** Meticulously check if a file with this *exact derived name* already exists inside the `wireframes/` directory.
+        *   **Conditional Wireframe Generation:**
+            *   **If the specific wireframe file exists:** Do *not* generate a wireframe for this task. Log (internally) that wireframe generation for this task is skipped due to file existence. Proceed to the next task.
+            *   **If the specific wireframe file does *not* exist:**
+                *   **Apply Wireframing Rules:** Generate a conceptual, simple wireframe strictly following the guidelines and rules specified in the external reference document/ruleset identified as `@wireframe-rules.mdc`. This includes representing the core UI elements, layout structure, content hierarchy, and basic navigation flow for *this specific task*[4][6].
+                *   **Adhere to Best Practices:** Ensure the generated wireframe follows key best practices: maintain simplicity, use grayscale, limit fonts (max 2), represent graphics/images with placeholders (e.g., boxes with 'X'), and consider different screen sizes/orientations where applicable[3][2][6]. Focus on clarity and structure, not high-fidelity aesthetics[6][4].
+                *   **Output Format:** The output can be a textual description, ASCII art, or ideally, a basic image file (e.g., PNG, SVG) if the system is capable and allowed by `@wireframe.mdc`.
+                *   Save this wireframe representation into the derived filename inside the `wireframes/` directory.
+                *   Log (internally) successful wireframe generation and saving for this task.
+    *   **If Not UI Relevant:** Log (internally) that wireframe generation is skipped for this task as it does not appear to involve a user interface.
+4.  **Completion Check:** After iterating through *all* tasks listed in `tasks.json`, proceed to Step 4.
+
+**Step 4: Detailed Task Elaboration and Specification**
+
+1.  **Ensure Directory Exists:** Check if a directory named `taskbreakup` exists in the current working directory. If it does not exist, create it.
+2.  **Process Tasks:** Access the `tasks.json` file and parse the JSON array of tasks.
+3.  **Iterate and Elaborate (Conditional per Task):** For **each individual task** object within the `tasks.json` array:
+    *   **Derive Filename:** Determine a descriptive Markdown filename for the task's specification (e.g., based on task ID or sanitized description: `T001_implement_user_login_screen.md`).
+    *   **Check for Existing Task File:** Meticulously check if a file with this *exact derived name* already exists inside the `taskbreakup/` directory.
+    *   **Conditional Task Elaboration:**
+        *   **If the specific task file exists:** Do *not* generate content for this task. Log (internally) that elaboration is skipped and proceed to the *next* task.
+        *   **If the specific task file does *not* exist:**
+            *   Generate a comprehensive Markdown document for this *single task*, reflecting rigorous software engineering practices (e.g., Netflix, Google). Include dedicated sections covering *at least* the following:
+                *   **Task Title/ID:** Clearly state the task.
+                *   **Detailed Description ('What'):** Expand on the task. Detail functionalities, inputs, outputs, acceptance criteria.
+                *   **Implementation Plan ('How'):** Outline technical approach, algorithms, steps, challenges, alternatives.
+                *   **Relevant Wireframe:**
+                    *   Check if a wireframe was generated for this task in Step 3 (based on UI relevance assessment and file existence in `wireframes/`).
+                    *   If yes, include the *exact filename* of the corresponding wireframe (e.g., `Refer to wireframe: wireframes/T001_login_screen_wireframe.png`).
+                    *   If no wireframe was generated (either because the task was not UI-relevant or skipped), state: `No specific wireframe generated for this task.`
+                *   **Proposed Tech Stack:** List specific languages, frameworks, libraries, databases, tools for *this task*.
+                *   **API/Data Model Design (if applicable):** Specify endpoints, request/response formats, schema changes, data structures.
+                *   **Unit Testing Strategy:** Define key scenarios, edge cases, coverage levels, tools/frameworks.
+                *   **Integration Testing Points:** Identify dependencies and verification points.
+                *   **Design Document Links/Pointers:** Note need for/existence of formal design docs; outline key diagrams needed.
+                *   **Security Considerations:** Analyze risks *for this task* (input validation, auth/authz, data handling, OWASP Top 10) and propose mitigations.
+                *   **Performance & Scalability:** Discuss requirements/bottlenecks for this task.
+                *   **Depends on Task:** Provide on which previous task this is dependent
+                *   **Observability:** Mention key metrics, logs, traces needed.
+                *   **Definition of Done:** Unambiguous completion criteria.
+            *   Save this detailed Markdown content into the derived filename inside the `taskbreakup/` directory.
+            *   Log (internally) successful elaboration and saving for this task file.
+4.  **Completion Check:** After iterating through *all* tasks listed in `tasks.json`, proceed to Step 5.
+
+**Step 5: Signal Completion**
+
+1.  **Final Confirmation:** Once all preceding steps (including iterations in Step 3 and Step 4) have been completed or correctly skipped based on existence checks, output the literal string:
+    `I am done.`
+
